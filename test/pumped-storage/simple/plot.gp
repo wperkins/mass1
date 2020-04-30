@@ -41,7 +41,7 @@ set size W, H-2*h
 set yrange [1:5]
 set xtics mirror
 set bmargin 3
-set xtics mirror format "%m%d\n%H:%M"
+set xtics mirror format "%m/%d\n%H:%M"
 set ylabel 'Discharge, m^{3}/s'
 set format y '%4.1f'
 set key title "Channel"
