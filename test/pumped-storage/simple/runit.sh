@@ -8,7 +8,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 11, 1998 by William A. Perkins
-# Last Change: 2020-04-30 09:17:31 d3g096
+# Last Change: 2020-04-30 11:23:20 d3g096
 # -------------------------------------------------------------
 # $Id$
 
@@ -28,4 +28,6 @@ ln -sf mass1-run.cfg mass1.cfg
 
 $model
 
-# gnuplot plot.gp > plot.eps
+rm -f mass1.cfg
+
+gnuplot plot.gp > plot.eps
