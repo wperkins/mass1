@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 20, 2017 by William A. Perkins
-! Last Change: 2020-04-15 12:04:42 d3g096
+! Last Change: 2020-04-30 08:34:11 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -709,6 +709,13 @@ CONTAINS
     DO WHILE (ASSOCIATED(link))
        IF (link%dsid .GT. 0) THEN 
           CALL this%links%save()
+
+          ! this has wasted some time, so check for it
+          IF (link%dsid .EQ. link%id) THEN
+             WRITE(msg, '("link , I4, : attempt to connect to itself downstream")')&
+                  link%id
+             ierr = ierr + 1
+          END IF
           dlink => this%links%find(link%dsid)
           CALL this%links%restore()
           IF (.NOT. ASSOCIATED(dlink)) THEN
