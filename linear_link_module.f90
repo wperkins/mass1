@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-05-04 09:37:39 d3g096
+! Last Change: 2020-05-04 14:06:13 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -156,6 +156,11 @@ CONTAINS
              ELSE
                 NULLIFY(this%species(i)%latbc)
              END IF
+             IF (ldata%dsid .LE. 0) THEN
+                this%species(i)%dsbc => bcman%find(TEMP_BC_TYPE, DS_BC_ID)
+             ELSE
+                NULLIFY(this%species(i)%dsbc)
+             END IF
           CASE (TRANS_BC_TYPE)
              IF (ldata%gbcid .GT. 0) THEN
                 this%species(i)%usbc => bcman%find(TRANS_BC_TYPE, ldata%gbcid)
@@ -166,6 +171,11 @@ CONTAINS
                 this%species(i)%latbc => bcman%find(TRANS_BC_TYPE, ldata%lgbcid)
              ELSE
                 NULLIFY(this%species(i)%latbc)
+             END IF
+             IF (ldata%dsid .LE. 0) THEN
+                this%species(i)%dsbc => bcman%find(TRANS_BC_TYPE, DS_BC_ID)
+             ELSE
+                NULLIFY(this%species(i)%dsbc)
              END IF
           CASE DEFAULT
           END SELECT

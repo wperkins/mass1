@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created March  8, 2017 by William A. Perkins
-! Last Change: 2020-05-04 09:44:55 d3g096
+! Last Change: 2020-05-04 12:01:21 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE link_module
@@ -99,6 +99,7 @@ MODULE link_module
      INTEGER :: order
      INTEGER :: dsid, usbcid, dsbcid
      LOGICAL :: tsubstep
+     LOGICAL :: imds
      CLASS (bc_t), POINTER :: usbc, dsbc, latbc
      CLASS (confluence_t), POINTER :: ucon, dcon
      TYPE (link_scalar), DIMENSION(:), POINTER :: species
@@ -401,6 +402,8 @@ CONTAINS
     IMPLICIT NONE
     CLASS (link_t), INTENT(INOUT) :: this
 
+    this%tsubstep = .TRUE.
+    this%imds = .FALSE.
     NULLIFY(this%usbc)
     NULLIFY(this%dsbc)
     NULLIFY(this%latbc)
@@ -743,7 +746,7 @@ CONTAINS
        uconc = cavg/REAL(n)
     END IF
 
-    WRITE(*, *) 'qin = ', qin, ", qout = ", qout, "uconc = ", uconc
+    ! WRITE(*, *) 'qin = ', qin, ", qout = ", qout, "uconc = ", uconc
   END FUNCTION confluence_conc
 
   ! ----------------------------------------------------------------

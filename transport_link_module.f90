@@ -7,7 +7,7 @@
   ! ----------------------------------------------------------------
   ! ----------------------------------------------------------------
   ! Created February 18, 2019 by William A. Perkins
-  ! Last Change: 2020-05-04 11:27:59 d3g096
+  ! Last Change: 2020-05-04 12:45:09 d3g096
   ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE transport_link_module
@@ -330,6 +330,8 @@ CONTAINS
        c = 0.0
        IF (ASSOCIATED(this%dcon)) THEN
           c = this%dcon%conc(ispec)
+       ELSE IF (ASSOCIATED(this%species(ispec)%dsbc)) THEN
+          c = this%species(ispec)%getdsbc()
        ELSE
           WRITE(msg, *) 'link ', this%id, &
                &': error: reverse flow at downstream boundary w/o conc BC for species ', &

@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 20, 2017 by William A. Perkins
-! Last Change: 2020-04-30 08:34:11 d3g096
+! Last Change: 2020-05-04 12:02:10 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -701,6 +701,10 @@ CONTAINS
        ierr = ierr + 1
     END IF
 
+    ! tell the downstream link it's the downstream link
+
+    this%dslink%imds = .TRUE.
+
     ! connect each link with it's downstream neighbor
 
     CALL this%links%begin()
@@ -785,6 +789,12 @@ CONTAINS
             &dlink%id, dlink%order, dlink%tsubstep
        msg = TRIM(lbl) // TRIM(msg) 
        CALL status_message(msg)
+
+       IF (dlink%imds) THEN
+          WRITE(msg, '("link ", I5, " is the downstream boundary link")') dlink%id
+          CALL status_message(msg)
+       END IF
+       
        CALL this%links%next()
        dlink => this%links%current()
     END DO
