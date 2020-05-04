@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-04-17 07:38:46 d3g096
+! Last Change: 2020-05-04 09:37:39 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -1018,7 +1018,7 @@ CONTAINS
     DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
 
     INTEGER :: i
-    DOUBLE PRECISION :: c
+    DOUBLE PRECISION :: c, qup, qdn
 
     DO i = 1, this%npoints
        this%pt(i)%trans%cold(ispec) = this%pt(i)%trans%cnow(ispec)
@@ -1028,7 +1028,11 @@ CONTAINS
     ! to all points. There needs to be a general way of dealing
     ! reverse flow, but get it working first
 
-    IF (this%q_up() .GT. 0.0) THEN
+    qup = this%q_up(.TRUE.)
+    qdn = this%q_down(.TRUE.)
+    c = this%pt(1)%trans%cnow(ispec)
+
+    IF (qup .GE. 1.0D-40) THEN
        IF (ASSOCIATED(this%species(ispec)%usbc)) THEN
           c = this%species(ispec)%usbc%current_value
        ELSEIF (ASSOCIATED(this%ucon)) THEN
@@ -1038,7 +1042,7 @@ CONTAINS
           CALL error_message("Upstream link w/o transport BC")
        END IF
     END IF
-    IF (this%q_down() .LT. 0.0) THEN
+    IF (qdn .LT. -1.0D-40) THEN
        IF (ASSOCIATED(this%dcon)) THEN
           c = this%dcon%conc(ispec)
        ELSE
@@ -1046,7 +1050,7 @@ CONTAINS
           CALL error_message("Reverse flow w/o transport BC")
        END IF
     END IF
-    DO i = i, this%npoints
+    DO i = 1, this%npoints
        this%pt(i)%trans%cnow(ispec) = c
     END DO
 
