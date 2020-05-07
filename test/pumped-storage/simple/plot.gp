@@ -1,6 +1,5 @@
 
 set term post enh eps color dashed "Helvetica" 18
-set output 'plot.eps'
 
 set xdata time
 set timefmt "%m-%d-%Y %H:%M:%S"
