@@ -7,7 +7,7 @@
   ! ----------------------------------------------------------------
   ! ----------------------------------------------------------------
   ! Created February 18, 2019 by William A. Perkins
-  ! Last Change: 2020-05-04 12:45:09 d3g096
+  ! Last Change: 2020-05-07 06:38:42 d3g096
   ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE transport_link_module
@@ -372,10 +372,10 @@ CONTAINS
     ! gradient w/ outflow
 
     n = this%npoints
-    IF (qup .LT. 0.0) THEN
+    IF (qup .LE. 0.0) THEN
        this%pt(1)%trans%cnow(ispec) = this%pt(2)%trans%cnow(ispec)
     END IF
-    IF (qdn .GT. 0.0) THEN
+    IF (qdn .GE. 0.0) THEN
        this%pt(n)%trans%cnow(ispec) = this%pt(n-1)%trans%cnow(ispec)
     END IF
     

@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-05-04 14:06:13 d3g096
+! Last Change: 2020-05-07 06:09:57 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -483,13 +483,16 @@ CONTAINS
   ! ----------------------------------------------------------------
   ! DOUBLE PRECISION FUNCTION linear_link_c_down
   ! ----------------------------------------------------------------
-  DOUBLE PRECISION FUNCTION linear_link_c_down(this, ispecies)
+  FUNCTION linear_link_c_down(this, ispecies) RESULT(c)
     IMPLICIT NONE
+    DOUBLE PRECISION :: c
     CLASS (linear_link_t), INTENT(IN) :: this
     INTEGER, INTENT(IN) :: ispecies
     INTEGER :: npts
     npts = this%points()
-    linear_link_c_down = this%pt(npts)%trans%cnow(ispecies)
+    ASSOCIATE (pt => this%pt(npts)%trans)
+      c = pt%cnow(ispecies)
+    END ASSOCIATE
   END FUNCTION linear_link_c_down
 
   ! ----------------------------------------------------------------
@@ -508,32 +511,33 @@ CONTAINS
     END IF
 
     DO i = 1, this%npoints
-       this%pt(i)%hnow%y = MAX(stage, this%pt(i)%thalweg + depth_minimum)
-       this%pt(i)%hold%y = this%pt(i)%hnow%y
-       this%pt(i)%hnow%q = discharge
-       this%pt(i)%hold%q = this%pt(i)%hnow%q
-       this%pt(i)%hnow%lateral_inflow = 0.0
-       this%pt(i)%hold%lateral_inflow = 0.0
-       
+       ASSOCIATE(pt => this%pt(i))
+         pt%hnow%y = MAX(stage, this%pt(i)%thalweg + depth_minimum)
+         pt%hold%y = this%pt(i)%hnow%y
+         pt%hnow%q = discharge
+         pt%hold%q = this%pt(i)%hnow%q
+         pt%hnow%lateral_inflow = 0.0
+         pt%hold%lateral_inflow = 0.0
 
-       this%pt(i)%trans%hnow = this%pt(i)%hnow
-       this%pt(i)%trans%hold = this%pt(i)%hnow
+         pt%trans%hnow = pt%hnow
+         pt%trans%hold = pt%hnow
 
-       ! FIXME: just do this eventually
-       ! DO s = 1, nspecies
-       !    this%pt(i)%trans%cnow(s) = c(s)
-       !    this%pt(i)%trans%cold(s) = c(s)
-       ! END DO
+         ! FIXME: just do this eventually
+         ! DO s = 1, nspecies
+         !    this%pt(i)%trans%cnow(s) = c(s)
+         !    this%pt(i)%trans%cold(s) = c(s)
+         ! END DO
+         
+         IF (nspecies .GT. 0) THEN
+            pt%trans%hnow = pt%hnow
+            pt%trans%hold = pt%trans%hnow
+         END IF
 
-       IF (nspecies .GT. 0) THEN
-          this%pt(i)%trans%hnow = this%pt(i)%hnow
-          this%pt(i)%trans%hold = this%pt(i)%trans%hnow
-       END IF
-          
-
-       DO s = 1, nspecies
-          this%pt(i)%trans%cnow(s) = c(s)
-       END DO
+         DO s = 1, nspecies
+            pt%trans%cnow(s) = c(s)
+            pt%trans%cold(s) = c(s)
+         END DO
+       END ASSOCIATE
     END DO
 
   END SUBROUTINE linear_link_set_initial
@@ -641,12 +645,14 @@ CONTAINS
           ierr = ierr + 1
           EXIT
        END IF
-       DO s = 1, nspecies
-          this%pt(i)%trans%cnow(s) = c(s)
-          this%pt(i)%trans%cold(s) = cold(s)
-       END DO
-       this%pt(i)%trans%bedtemp = tbed
-       this%pt(i)%trans%bedtempold = tbed
+       ASSOCIATE (pt => this%pt(i)%trans)
+         DO s = 1, nspecies
+            pt%cnow(s) = c(s)
+            pt%cold(s) = cold(s)
+         END DO
+         pt%bedtemp = tbed
+         pt%bedtempold = tbed
+       END ASSOCIATE
 
     END DO
     
@@ -704,10 +710,12 @@ CONTAINS
 
     ierr = 0
     DO i = 1, this%npoints
-       WRITE(iunit, IOSTAT=iostat) &
-            &(this%pt(i)%trans%cnow(s), s = 1, nspecies), &
-            &(this%pt(i)%trans%cold(s), s = 1, nspecies), &
-            & this%pt(i)%trans%bedtemp
+       ASSOCIATE (pt => this%pt(i)%trans)
+         WRITE(iunit, IOSTAT=iostat) &
+              &(pt%cnow(s), s = 1, nspecies), &
+              &(pt%cold(s), s = 1, nspecies), &
+              & pt%bedtemp
+       END ASSOCIATE
        
        IF (iostat .NE. 0) THEN
           WRITE(msg, *) 'link ', this%id, &
@@ -760,8 +768,8 @@ CONTAINS
          pt%hold = pt%hnow
          pt%xspropold = pt%xsprop
          IF (ASSOCIATED(this%species)) THEN
-            pt%trans%hold = pt%hold
-            pt%trans%xspropold = pt%xsprop
+            pt%trans%hnow = pt%hold
+            pt%trans%xsprop = pt%xspropold
          END IF
        END ASSOCIATE
     END DO
@@ -819,7 +827,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: dsbc_type
     DOUBLE PRECISION :: bcval, dy, dq
     INTEGER :: point
-    CLASS (point_t), POINTER :: pt
+    TYPE (point_t), POINTER :: pt
     CHARACTER (LEN=1024) :: msg
     
 
@@ -961,7 +969,7 @@ CONTAINS
     CLASS (linear_link_t), INTENT(INOUT) :: this
     INTEGER :: i
     CHARACTER (LEN=1024) :: msg
-    CLASS (point_t), POINTER :: pt
+    TYPE (point_t), POINTER :: pt
 
     ! why cant I do this
     ! ierr = this%link_t%check()
@@ -1042,7 +1050,7 @@ CONTAINS
     qdn = this%q_down(.TRUE.)
     c = this%pt(1)%trans%cnow(ispec)
 
-    IF (qup .GE. 1.0D-40) THEN
+    IF (qup .GE. 0.0) THEN
        IF (ASSOCIATED(this%species(ispec)%usbc)) THEN
           c = this%species(ispec)%usbc%current_value
        ELSEIF (ASSOCIATED(this%ucon)) THEN
@@ -1052,7 +1060,7 @@ CONTAINS
           CALL error_message("Upstream link w/o transport BC")
        END IF
     END IF
-    IF (qdn .LT. -1.0D-40) THEN
+    IF (qdn .LE. 0.0) THEN
        IF (ASSOCIATED(this%dcon)) THEN
           c = this%dcon%conc(ispec)
        ELSE
