@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-05-07 06:09:57 d3g096
+! Last Change: 2020-05-19 12:53:14 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -827,7 +827,8 @@ CONTAINS
     INTEGER, INTENT(IN) :: dsbc_type
     DOUBLE PRECISION :: bcval, dy, dq
     INTEGER :: point
-    TYPE (point_t), POINTER :: pt
+    DOUBLE PRECISION :: bslope, qtmp, dqdy
+    TYPE (point_t), POINTER :: pt, ptm1
     CHARACTER (LEN=1024) :: msg
     
 
@@ -839,18 +840,32 @@ CONTAINS
        dy = this%dcon%elev() - pt%hnow%y
        dq = pt%sweep%e*dy + pt%sweep%f
 
+    ELSE IF (dsbc_type .EQ. DSBC_NORMAL) THEN
+       ! normal discharge
+       ptm1 => this%pt(point - 1)
+       bslope = ABS(ptm1%thalweg - pt%thalweg)/&
+            &ABS(ptm1%x - pt%x)
+       qtmp = pt%xsprop%conveyance*sqrt(bslope)
+       dqdy = pt%xsprop%dkdy*sqrt(bslope)
+
+       dy = (qtmp - pt%sweep%f - pt%hnow%q)/(pt%sweep%e - dqdy)
+       dq = pt%sweep%e*dy + pt%sweep%f
+
     ELSE IF (ASSOCIATED(this%dsbc)) THEN
 
        bcval = this%dsbc%current_value
        SELECT CASE(dsbc_type)
-       CASE(1)
+       CASE(DSBC_STAGE)
           ! given downstream stage
           dy = bcval - pt%hnow%y
           dq = pt%sweep%e*dy + pt%sweep%f
-       CASE(2)
+       CASE(DSBC_DISCHARGE)
           ! given downstream discharge
           dq = bcval - pt%hnow%q
           dy = (dq - pt%sweep%f)/pt%sweep%e
+       CASE DEFAULT
+          WRITE(*,*) "Whoa, how did this happen?"
+          STOP
        END SELECT
     ELSE
        WRITE(msg, *) "Link ", this%id, ": missing downstream boundary condition"
