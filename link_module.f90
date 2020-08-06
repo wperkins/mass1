@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created March  8, 2017 by William A. Perkins
-! Last Change: 2020-05-04 12:01:21 d3g096
+! Last Change: 2020-07-22 13:00:52 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE link_module
@@ -302,6 +302,9 @@ MODULE link_module
      END SUBROUTINE destroy_proc
 
   END INTERFACE
+
+  DOUBLE PRECISION, PUBLIC, PARAMETER :: alpha = 1.0
+  DOUBLE PRECISION, PUBLIC, PARAMETER :: theta = 1.0
 
 CONTAINS
 
