@@ -13,7 +13,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created January  7, 2019 by William A. Perkins
-! Last Change: 2020-04-29 14:12:08 d3g096
+! Last Change: 2020-08-06 09:18:50 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -191,6 +191,12 @@ CONTAINS
     t%do_bed = dobed
     t%do_limit = .FALSE.
 
+    t%do_eqlimit = .FALSE.
+
+    ! If .TRUE., do not use bad values to compute source term
+    t%do_limit = temperature_limits
+
+    ! This doesn't work yet so don't use it
     t%do_eqlimit = .FALSE.
 
   END FUNCTION new_temperature

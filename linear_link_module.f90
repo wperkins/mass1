@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-05-19 12:53:14 d3g096
+! Last Change: 2020-05-28 08:47:03 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -1070,7 +1070,7 @@ CONTAINS
           c = this%species(ispec)%usbc%current_value
        ELSEIF (ASSOCIATED(this%ucon)) THEN
           c = this%ucon%conc(ispec)
-       ELSE
+       ELSEIF (qup .GT. 0.0) THEN
           ! this is bad, but shouldn't happen often
           CALL error_message("Upstream link w/o transport BC")
        END IF
@@ -1078,7 +1078,7 @@ CONTAINS
     IF (qdn .LE. 0.0) THEN
        IF (ASSOCIATED(this%dcon)) THEN
           c = this%dcon%conc(ispec)
-       ELSE
+       ELSEIF (qdn .LT. 0.0) THEN
           ! also bad, but shouldn't happen often
           CALL error_message("Reverse flow w/o transport BC")
        END IF
