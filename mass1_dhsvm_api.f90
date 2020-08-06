@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created February  4, 2019 by William A. Perkins
-! Last Change: 2020-07-27 12:31:07 d3g096
+! Last Change: 2020-08-06 09:18:17 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -35,6 +35,7 @@ FUNCTION mass1_create(c_cfgdir, c_outdir, start, end, pid, &
   ALLOCATE(f_net)
   ALLOCATE(f_net%net)
   f_net%net = network()
+  f_net%net%config%quiet = (pid .GT. 0)
   f_dotemp = (dotemp .NE. 0)
   f_dolwrad = (dolwrad .NE. 0)
   f_dobed = (dobed .NE. 0)
