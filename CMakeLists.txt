@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-08-06 09:29:43 d3g096
+# Last Change: 2020-08-20 14:06:50 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -121,10 +121,12 @@ configure_file(banner.f90.in banner.f90 @ONLY)
 add_subdirectory(time_series)
 add_subdirectory(gastemp)
 add_subdirectory(scripts)
+add_subdirectory(json-fortran)
 
 include_directories(BEFORE 
   ${CMAKE_CURRENT_BINARY_DIR}/gastemp
   ${CMAKE_CURRENT_BINARY_DIR}/time_series
+  ${CMAKE_CURRENT_BINARY_DIR}/json-fortran
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
