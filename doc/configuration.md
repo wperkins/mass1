@@ -36,7 +36,8 @@ because they are no longer needed or computed internally.  Items
 |20 | 1 | int  | Maximum number of points on a link
 |21 | 1 | int  | ~~Maximum number of values in a [BC file](bc.md)~~
 |22 | 1 | int  | Number of transport time sub-steps (0 = automatic,
-negative = crash if transport sub-steps exceeded)
+positive = use fixed number of sub-steps, negative = automatic, but
+crash if (-) number exceeded)
 |23 | 1 | flag | Enable debugging output
 |24 | 1 | string | [Link file](link.md) name
 |25 | 1 | string | [Point file](point.md) name
