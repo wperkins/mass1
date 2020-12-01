@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-12-01 11:19:30 d3g096
+# Last Change: 2020-12-01 11:53:04 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -60,6 +60,14 @@ elseif (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   # and turn on the preprocessor for all files
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fpe0 -fpp -traceback")
 endif()
+
+# -------------------------------------------------------------
+# Compiler flags
+# -------------------------------------------------------------
+if (CMAKE_COMPILER_IS_GNUG77)
+  add_definitions("-Wno-surprising -Wno-unused-function")
+endif (CMAKE_COMPILER_IS_GNUG77)
+
 
 # -------------------------------------------------------------
 # Perl - for scripts
@@ -279,7 +287,7 @@ add_executable(mass1 mass1_new.f90)
 set_target_properties(mass1 PROPERTIES OUTPUT_NAME mass1_new)
 
 add_dependencies(mass1 mass1lib)
-target_link_libraries(mass1 mass1lib gastemp ts)
+target_link_libraries(mass1 mass1lib gastemp ts jsonfortran-static)
 install(TARGETS mass1 DESTINATION bin)
 
 # save for running tests
