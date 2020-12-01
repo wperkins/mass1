@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created March  8, 2017 by William A. Perkins
-! Last Change: 2020-07-22 13:00:52 d3g096
+! Last Change: 2020-12-01 11:23:28 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE link_module
@@ -24,6 +24,7 @@ MODULE link_module
   USE point_module
   USE scalar_module
   USE transport_module
+  USE json_module
 
   IMPLICIT NONE
 
@@ -108,6 +109,7 @@ MODULE link_module
      PROCEDURE :: construct => link_construct
      PROCEDURE (init_proc), DEFERRED :: initialize
      PROCEDURE (readpts_proc), DEFERRED :: readpts
+     PROCEDURE :: readaux => link_readaux
      PROCEDURE :: points => link_points
      PROCEDURE :: length => link_length
      PROCEDURE (destroy_proc), DEFERRED :: destroy
@@ -431,6 +433,29 @@ CONTAINS
     ierr = 0
 
   END FUNCTION link_initialize
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION link_readaux
+  !
+  ! It is an error to call this method. Child link classes that need
+  ! auxiliary data need over ride this method.
+  ! ----------------------------------------------------------------
+  FUNCTION link_readaux(this, linkaux) RESULT(ierr)
+
+    IMPLICIT NONE
+    INTEGER :: ierr
+    CLASS (link_t), INTENT(INOUT) :: this
+    TYPE (json_value), POINTER, INTENT(IN) :: linkaux
+    LOGICAL :: found
+    CHARACTER (LEN=64) :: msg
+
+    ierr = 0;
+    IF (ASSOCIATED(linkaux)) THEN
+       WRITE(msg, *) "link ", this%id, ": error: cannot handle auxiliary data"
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = 1
+    END IF
+  END FUNCTION link_readaux
 
   ! ----------------------------------------------------------------
   !  FUNCTION link_points

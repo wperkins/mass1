@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-08-20 14:06:50 d3g096
+# Last Change: 2020-12-01 11:19:30 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -273,7 +273,7 @@ add_library(mass1lib
   mass1_dhsvm_module.f90
   mass1_dhsvm_api.f90
   )
-add_dependencies(mass1lib gastemp ts)
+add_dependencies(mass1lib gastemp ts jsonfortran)
 
 add_executable(mass1 mass1_new.f90)
 set_target_properties(mass1 PROPERTIES OUTPUT_NAME mass1_new)
