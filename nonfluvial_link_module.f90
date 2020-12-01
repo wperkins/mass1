@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2020-07-23 14:50:40 d3g096
+! Last Change: 2020-12-01 13:09:10 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -21,6 +21,7 @@ MODULE nonfluvial_link_module
   USE flow_coeff
   USE bc_module
   USE storage_module
+  USE json_module
   
   IMPLICIT NONE
 
@@ -89,11 +90,10 @@ MODULE nonfluvial_link_module
   TYPE, PUBLIC, EXTENDS(internal_bc_link_t) :: offline_storage_link
      ! The actual storage bucket
      TYPE (storage_ptr) :: storage
-
-     
      DOUBLE PRECISION :: yconnect
    CONTAINS
      PROCEDURE :: coeff => offline_storage_link_coeff
+     PROCEDURE :: readaux => offline_storage_link_readaux
   END type offline_storage_link
 
 
@@ -323,5 +323,62 @@ CONTAINS
     
   END SUBROUTINE offline_storage_link_coeff
 
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION offline_storage_link_readaux
+  ! ----------------------------------------------------------------
+  FUNCTION offline_storage_link_readaux(this, linkaux) RESULT(ierr)
+
+    IMPLICIT NONE
+    INTEGER :: ierr
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    TYPE (json_value), POINTER, INTENT(IN) :: linkaux
+    TYPE (json_core) :: json
+    TYPE (simple_storage), POINTER :: s
+    CHARACTER (LEN=64) :: msg
+
+    DOUBLE PRECISION :: thearea, theelev
+
+    ierr = 0
+
+    IF (.NOT. ASSOCIATED(linkaux)) THEN
+       WRITE(msg, *) 'link ', this%id, ': offline storage link requires auxiliary data'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+       RETURN
+    END IF
+
+    CALL json%initialize()
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': cannot initialize json'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    END IF
+    
+
+    CALL json%get(linkaux, 'Area', thearea)
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': offline storage required "Area" not found'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    END IF
+
+    CALL json%get(linkaux, 'Elevation', theelev)
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': offline storage required "Elevation" not found'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    END IF
+
+    IF (ierr .EQ. 0) THEN
+       ALLOCATE(s)
+       s = simple_storage(thearea, theelev)
+       this%storage%p => s
+       NULLIFY(s)
+    END IF
+    
+  END FUNCTION offline_storage_link_readaux
+
+  
 
 END MODULE nonfluvial_link_module
