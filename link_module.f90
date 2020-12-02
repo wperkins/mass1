@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created March  8, 2017 by William A. Perkins
-! Last Change: 2020-12-01 13:15:11 d3g096
+! Last Change: 2020-12-01 13:57:24 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE link_module
@@ -410,6 +410,7 @@ CONTAINS
 
     this%tsubstep = .TRUE.
     this%imds = .FALSE.
+    this%needaux = .FALSE.
     NULLIFY(this%usbc)
     NULLIFY(this%dsbc)
     NULLIFY(this%latbc)
@@ -438,8 +439,8 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION link_readaux
   !
-  ! It is an error to call this method. Child link classes that need
-  ! auxiliary data need over ride this method.
+  ! It is an error to call this method. Child link classes that use
+  ! auxiliary data need over ride this method (and set needaux).
   ! ----------------------------------------------------------------
   FUNCTION link_readaux(this, linkaux) RESULT(ierr)
 

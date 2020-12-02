@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created April  3, 2020 by William A. Perkins
-! Last Change: 2020-08-05 08:42:44 d3g096
+! Last Change: 2020-12-02 14:21:49 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE storage_module
@@ -152,8 +152,12 @@ CONTAINS
     CLASS (simple_storage), INTENT(IN) :: this
     DOUBLE PRECISION, INTENT(IN) :: y
 
-    dvdy = this%area(y)
-
+    IF (y .GT. this%ybottom) THEN
+       dvdy = this%area(y)
+    ELSE
+       dvdy = 0.0
+    END IF
+    
   END FUNCTION simple_storage_dvdy
 END MODULE storage_module
 

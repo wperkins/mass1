@@ -243,8 +243,8 @@ CONTAINS
           !     c(link,point),temp(link,point),thalweg(link,point),area(link,point)
 
 1000      FORMAT(i5,1x,i5,1x,i5,1x,f9.3,1x,f8.3,2x,f14.4,2x,f8.3,2x,f8.3,2x,f10.2,2x,f6.2,2x,f6.2,2x,f6.1,2x, &
-               f8.2,2x,es10.2,2x, &
-               f8.2,2x,f6.2,f6.2,f6.2,f6.2,es10.2,2x,es10.2)
+               f8.3,2x,es10.2,2x, &
+               f8.2,2x,f6.2,f6.2,f6.2,1x,f6.2,es10.2,2x,es10.2)
 
           lastlink=link
 

@@ -36,9 +36,8 @@ a slash at the end of the data. The field descriptions that are
   
 ## Link Identifiers
 
-Link identifiers are used internally as array indexes. Consequently,
-they need to start with `1` and increase incrementally by `1`.  Link
-definitions can be in any order, but 
+Link identifiers are unique, positive integers. There are no other
+restrictions.  
 
 ## Link Type
 
@@ -54,6 +53,7 @@ definitions can be in any order, but
 | 4 | Imposed Downstream stage 
 | 5 | Tributary inflow
 | 6 | Imposed hydroelectric dam discharge: like 2, but with generation and spill discharges specified in a [hydro BC](bc.md) file.
+| 8 | Offline storage 
 | 60 | Hydrologic routing link 
 
 ## Point Input Option
@@ -70,6 +70,8 @@ Link points can be specified in one of two ways:
 
 ## Boundary Condition (BC) and Lateral Inflow Identifiers
 
+Boundary condition, lateral inflow, and meteorologic zones are unique,
+positive integers.  
 
 
 

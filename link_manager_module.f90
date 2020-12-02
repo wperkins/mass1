@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 20, 2017 by William A. Perkins
-! Last Change: 2020-12-01 12:57:53 d3g096
+! Last Change: 2020-12-02 13:47:52 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -27,7 +27,7 @@ MODULE link_manager_module
   USE bc_module
   USE section_handler_module
   USE scalar_module
-  USE json_module
+  USE link_aux_module
 
   IMPLICIT NONE
 
@@ -56,6 +56,7 @@ MODULE link_manager_module
      INTEGER, DIMENSION(:), ALLOCATABLE :: norder, stepped, nonstepped
      TYPE (link_ptr), DIMENSION(:,:), ALLOCATABLE :: links_by_order
      TYPE (link_ptr), DIMENSION(:,:), ALLOCATABLE :: links_substep, links_non_substep
+     TYPE (link_auxiliary) :: aux
    CONTAINS
      PROCEDURE, NOPASS :: scan => link_manager_scan
      PROCEDURE :: read => link_manager_read
@@ -116,7 +117,7 @@ CONTAINS
     lastid = 0
 
     CALL open_existing(theconfig%point_file, punit, fatal=.TRUE.)
-  
+
     ! FIXME: CALL print_output("POINTS", 0.0)
 
     DO WHILE(.TRUE.)
@@ -447,6 +448,7 @@ CONTAINS
           theconfig%do_hydro_bc = .TRUE.
        CASE (3)
        CASE (5)
+       CASE (8)
        CASE (12)
        CASE (13)
        CASE (60)
@@ -487,6 +489,7 @@ CONTAINS
     INTEGER, PARAMETER :: lunit = 21
     INTEGER :: recno, ierr, iostat, npid
     TYPE (link_input_data) :: ldata
+    TYPE (json_value), POINTER :: linkaux
     CHARACTER (LEN=1024) :: msg
 
     ierr = 0
@@ -578,6 +581,8 @@ CONTAINS
           ALLOCATE(ustage_link :: link)
        CASE (5)
           ALLOCATE(trib_inflow_link :: link)
+       CASE (8)
+          ALLOCATE(offline_storage_link :: link)
        CASE (12)
           ALLOCATE(pid_flow_link :: link)
           npid = npid + 1
@@ -604,6 +609,27 @@ CONTAINS
           CALL error_message(msg)
           ierr = ierr + 1
        END IF
+
+       IF (link%needaux) THEN
+          IF (.NOT. this%aux%loaded) THEN
+             CALL this%aux%load(theconfig%link_aux_file)
+          END IF
+          linkaux => this%aux%get(ldata%linkid)
+          IF (ASSOCIATED(linkaux)) THEN
+             IF (link%readaux(linkaux) .NE. 0) THEN
+                WRITE(msg, *) TRIM(theconfig%link_file), &
+                     &': erroroneous auxiliary data for link id = ', link%id
+                CALL error_message(msg)
+                ierr = ierr + 1
+             END IF
+          ELSE
+             WRITE(msg, *) TRIM(theconfig%link_file), &
+                  &': no auxiliary data for link id = ', link%id, ' found'
+             CALL error_message(msg)
+             ierr = ierr + 1
+          END IF
+       END IF
+
        CALL this%links%push(link)
        NULLIFY(link)
     END DO
@@ -641,6 +667,8 @@ CONTAINS
        msg = TRIM(theconfig%link_file) // ': link errors'
        CALL error_message(msg, fatal = .TRUE.)
     END IF
+
+    IF (this%aux%loaded) CALL this%aux%destroy()
    
     RETURN
 

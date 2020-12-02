@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-12-01 13:25:55 d3g096
+! Last Change: 2020-12-01 15:26:26 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -90,7 +90,6 @@ CONTAINS
     this%dsid = ldata%dsid
     this%input_option = ldata%inopt
     this%tsubstep = .TRUE.
-    this%needaux = .FALSE.
 
     ALLOCATE(this%pt(this%npoints))
 

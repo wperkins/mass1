@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-12-01 11:58:10 d3g096
+# Last Change: 2020-12-02 09:41:08 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -259,6 +259,7 @@ add_library(mass1lib STATIC
   fluvial_link_module.f90
   gage_module.f90
   linear_link_module.f90
+  link_aux_module.f90
   link_manager_module.f90
   link_module.f90
   nonfluvial_link_module.f90

@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created February 17, 2017 by William A. Perkins
-! Last Change: 2020-07-29 12:56:51 d3g096
+! Last Change: 2020-12-01 13:52:19 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE mass1_config
@@ -117,6 +117,7 @@ MODULE mass1_config
      INTEGER(KIND(DSBC_TYPE)) :: dsbc_type
      TYPE (time_frame_t) :: time
      CHARACTER(LEN=path_length) :: link_file
+     CHARACTER(LEN=path_length) :: link_aux_file
      CHARACTER(LEN=path_length) :: point_file
      CHARACTER(LEN=path_length) :: section_file
      CHARACTER(LEN=path_length) :: linkbc_file
@@ -511,6 +512,10 @@ CONTAINS
     line = line + 1
 
     CLOSE(iunit)
+
+    ! set this to a constant for now, needs to be in configuration
+
+    this%link_aux_file = "link_auxiliary.dat"
 
     ! set physical constants for specified unit system
 

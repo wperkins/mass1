@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2020-12-01 13:09:10 d3g096
+! Last Change: 2020-12-02 14:09:59 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -92,6 +92,7 @@ MODULE nonfluvial_link_module
      TYPE (storage_ptr) :: storage
      DOUBLE PRECISION :: yconnect
    CONTAINS
+     PROCEDURE :: construct => offline_storage_link_construct
      PROCEDURE :: coeff => offline_storage_link_coeff
      PROCEDURE :: readaux => offline_storage_link_readaux
   END type offline_storage_link
@@ -293,6 +294,19 @@ CONTAINS
 
   END SUBROUTINE trib_inflow_link_coeff
 
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_link_construct
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_link_construct(this)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+
+    CALL this%internal_bc_link_t%construct()
+    this%needaux = .TRUE.
+
+  END SUBROUTINE offline_storage_link_construct
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE offline_storage_link_coeff
@@ -310,8 +324,8 @@ CONTAINS
     dvdy = this%storage%p%dvdy(pt2%hnow%y)
 
     cf%a = 0.0
-    cf%b = theta
-    cf%c = dvdy
+    cf%b = -theta
+    cf%c = dvdy/dt
     cf%d = -theta
     cf%g = pt2%hnow%q - pt1%hnow%q
     
@@ -335,7 +349,8 @@ CONTAINS
     TYPE (json_value), POINTER, INTENT(IN) :: linkaux
     TYPE (json_core) :: json
     TYPE (simple_storage), POINTER :: s
-    CHARACTER (LEN=64) :: msg
+    LOGICAL :: found
+    CHARACTER (LEN=256) :: msg, fld
 
     DOUBLE PRECISION :: thearea, theelev
 
@@ -356,16 +371,22 @@ CONTAINS
     END IF
     
 
-    CALL json%get(linkaux, 'Area', thearea)
+    fld = "Area"
+    CALL json%get(linkaux, fld, thearea, found)
     IF (json%failed()) THEN
-       WRITE(msg, *) 'link ', this%id, ': offline storage required "Area" not found'
+       WRITE(msg, *) 'link ', this%id, ': JSON error looking for ', fld
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    ELSE IF (.NOT. found) THEN
+       WRITE(msg, *) 'link ', this%id, ': offline storage required value "', fld, '" not found'
        CALL error_message(msg, fatal=.FALSE.)
        ierr = ierr + 1
     END IF
 
-    CALL json%get(linkaux, 'Elevation', theelev)
+    fld = "InletElevation"
+    CALL json%get(linkaux, fld, theelev, found)
     IF (json%failed()) THEN
-       WRITE(msg, *) 'link ', this%id, ': offline storage required "Elevation" not found'
+       WRITE(msg, *) 'link ', this%id, ': offline storage required value "', fld, '" not found'
        CALL error_message(msg, fatal=.FALSE.)
        ierr = ierr + 1
     END IF
