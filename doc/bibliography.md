@@ -108,8 +108,7 @@ Regulated River Reach.” Water Resources Research 55 (4):
 Waichler, S. R., W. A. Perkins, and
 M. C. Richmond. 2005. “Hydrodynamic Simulation of the Columbia River,
 Hanford Reach, 1940-2004.” PNNL-15226. Richland, Washington: Pacific
-Northwest National
-Laboratory. http://www.pnnl.gov/publications/abstracts.asp?report=210821.
+Northwest National Laboratory.
 
 Waichler, S. R., W. A. Perkins, and
 M. C. Richmond. 2007. “Columbia River Stage and Discharge at Vernita Bar Under

@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-12-02 09:41:08 d3g096
+# Last Change: 2020-12-04 11:47:54 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -273,6 +273,7 @@ add_library(mass1lib STATIC
   profile_module.f90
   scalar_module.f90
   section_handler.f90
+  storage_factory_module.f90
   storage_module.f90
   transport_link_module.f90
   transport_module.f90

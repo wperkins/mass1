@@ -52,10 +52,10 @@ constructs.  Consistently, a Fortran compiler that conforms to the
 2003 standard is required to build MASS1. The following compilers are
 known to work:
 
-* [GNU Fortran](https://gcc.gnu.org/fortran/), Version 4.8 or higher
+* [GNU Fortran](https://gcc.gnu.org/fortran/), Version 5.3 or higher 
 
 * [Intel Fortran](https://software.intel.com/en-us/fortran-compilers),
-  Version 15 or higher 
+  Version 15 or higher
 
 In general, the Intel compiler produces a faster executable, but for
 most applications, this is not noticable. In the past, Fortran

@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2020-12-02 14:09:59 d3g096
+! Last Change: 2020-12-04 13:26:23 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -20,8 +20,7 @@ MODULE nonfluvial_link_module
   USE linear_link_module
   USE flow_coeff
   USE bc_module
-  USE storage_module
-  USE json_module
+  USE storage_factory_module
   
   IMPLICIT NONE
 
@@ -95,6 +94,7 @@ MODULE nonfluvial_link_module
      PROCEDURE :: construct => offline_storage_link_construct
      PROCEDURE :: coeff => offline_storage_link_coeff
      PROCEDURE :: readaux => offline_storage_link_readaux
+     PROCEDURE :: destroy => offline_storage_link_destroy
   END type offline_storage_link
 
 
@@ -321,7 +321,11 @@ CONTAINS
     TYPE (coeff), INTENT(OUT) :: cf
     DOUBLE PRECISION :: dvdy
 
-    dvdy = this%storage%p%dvdy(pt2%hnow%y)
+    IF (pt2%hnow%y .GT. this%yconnect) THEN
+       dvdy = this%storage%p%dvdy(pt2%hnow%y)
+    ELSE
+       dvdy = 0.0
+    END IF
 
     cf%a = 0.0
     cf%b = -theta
@@ -348,11 +352,12 @@ CONTAINS
     CLASS (offline_storage_link), INTENT(INOUT) :: this
     TYPE (json_value), POINTER, INTENT(IN) :: linkaux
     TYPE (json_core) :: json
-    TYPE (simple_storage), POINTER :: s
+    TYPE (storage_factory) :: factory
     LOGICAL :: found
     CHARACTER (LEN=256) :: msg, fld
 
-    DOUBLE PRECISION :: thearea, theelev
+    TYPE (json_value), POINTER :: sinfo
+    DOUBLE PRECISION :: theelev
 
     ierr = 0
 
@@ -368,11 +373,11 @@ CONTAINS
        WRITE(msg, *) 'link ', this%id, ': cannot initialize json'
        CALL error_message(msg, fatal=.FALSE.)
        ierr = ierr + 1
+       RETURN
     END IF
-    
 
-    fld = "Area"
-    CALL json%get(linkaux, fld, thearea, found)
+    fld = "Storage"
+    CALL json%get(linkaux, fld, sinfo, found)
     IF (json%failed()) THEN
        WRITE(msg, *) 'link ', this%id, ': JSON error looking for ', fld
        CALL error_message(msg, fatal=.FALSE.)
@@ -384,21 +389,37 @@ CONTAINS
     END IF
 
     fld = "InletElevation"
+    theelev = -9999.0
     CALL json%get(linkaux, fld, theelev, found)
     IF (json%failed()) THEN
-       WRITE(msg, *) 'link ', this%id, ': offline storage required value "', fld, '" not found'
+       WRITE(msg, *) 'link ', this%id, ': JSON error looking for  "', fld, '" not found'
        CALL error_message(msg, fatal=.FALSE.)
        ierr = ierr + 1
     END IF
 
     IF (ierr .EQ. 0) THEN
-       ALLOCATE(s)
-       s = simple_storage(thearea, theelev)
-       this%storage%p => s
-       NULLIFY(s)
+       this%storage = factory%generate(sinfo)
+       this%yconnect = theelev
     END IF
+
+    CALL json%destroy()
     
   END FUNCTION offline_storage_link_readaux
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_link_destroy
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_link_destroy(this)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+
+    DEALLOCATE(this%storage%p)
+    NULLIFY(this%storage%p)
+    CALL this%internal_bc_link_t%destroy()
+
+  END SUBROUTINE offline_storage_link_destroy
+
 
   
 
