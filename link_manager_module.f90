@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 20, 2017 by William A. Perkins
-! Last Change: 2020-12-02 13:47:52 d3g096
+! Last Change: 2020-12-08 13:19:08 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -28,6 +28,7 @@ MODULE link_manager_module
   USE section_handler_module
   USE scalar_module
   USE link_aux_module
+  USE offline_storage_link_module
 
   IMPLICIT NONE
 

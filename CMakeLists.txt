@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-12-04 11:47:54 d3g096
+# Last Change: 2020-12-08 13:18:22 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -262,11 +262,12 @@ add_library(mass1lib STATIC
   link_aux_module.f90
   link_manager_module.f90
   link_module.f90
-  nonfluvial_link_module.f90
   mass1_config.f90
   met_zone.f90
   modules.f90
   network.f90
+  nonfluvial_link_module.f90
+  offline_storage_link_module.f90
   pid_link_module.f90
   hydrologic_link.f90
   point_module.f90
