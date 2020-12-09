@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2020-12-08 13:17:53 d3g096
+! Last Change: 2020-12-09 11:09:42 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -21,7 +21,7 @@ MODULE nonfluvial_link_module
   USE flow_coeff
   USE bc_module
   USE storage_factory_module
-  
+
   IMPLICIT NONE
 
   PRIVATE
@@ -78,8 +78,13 @@ MODULE nonfluvial_link_module
   ! Tributary inflow (type = 5)
   ! ----------------------------------------------------------------
   TYPE, PUBLIC, EXTENDS(internal_bc_link_t) :: trib_inflow_link
+     DOUBLE PRECISION :: q, qold
    CONTAINS
      PROCEDURE :: coeff => trib_inflow_link_coeff
+     PROCEDURE :: initialize => trib_inflow_link_initialize
+     PROCEDURE :: pre_transport => trib_inflow_link_pre_transport
+     PROCEDURE :: trans_interp => trib_inflow_link_trans_interp
+     PROCEDURE :: transport => trib_inflow_link_transport
   END type trib_inflow_link
 
   DOUBLE PRECISION, PARAMETER :: eps = 1.0D-09
@@ -97,7 +102,7 @@ CONTAINS
     DOUBLE PRECISION, INTENT(IN) :: dt
 
     cnmax = 0.0
-    
+
   END FUNCTION internal_bc_max_courant
 
   ! ----------------------------------------------------------------
@@ -111,7 +116,7 @@ CONTAINS
     DOUBLE PRECISION, INTENT(IN) :: dt
 
     dmax = 0.0
-    
+
   END FUNCTION internal_bc_max_diffuse
 
   ! ----------------------------------------------------------------
@@ -172,7 +177,7 @@ CONTAINS
        CALL error_message(msg)
        ierr = ierr + 1
     END IF
-    
+
     ierr = ierr + this%linear_link_t%initialize(ldata, bcman, sclrman, metman)
   END FUNCTION hydro_link_initialize
 
@@ -187,7 +192,7 @@ CONTAINS
     DOUBLE PRECISION, INTENT(IN) :: dt
     TYPE (point_t), INTENT(IN) :: pt1, pt2
     TYPE (coeff), INTENT(OUT) :: cf
-    
+
     CALL this%discharge_link%coeff(dt, pt1, pt2, cf)
 
   END SUBROUTINE hydro_link_coeff
@@ -211,7 +216,7 @@ CONTAINS
     cf%c = 0.0
     cf%d = 1.0
     cf%g = pt1%hnow%q - pt2%hnow%q
-    
+
     cf%ap = 0.0
     cf%bp = 0.0
     cf%cp = 1.0
@@ -250,6 +255,38 @@ CONTAINS
   END SUBROUTINE dstage_link_coeff
 
   ! ----------------------------------------------------------------
+  !  FUNCTION trib_inflow_link_initialize
+  ! ----------------------------------------------------------------
+  FUNCTION trib_inflow_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+
+    IMPLICIT NONE
+    INTEGER :: ierr
+    CLASS (trib_inflow_link), INTENT(INOUT) :: this
+    CLASS (link_input_data), INTENT(IN) :: ldata
+    CLASS (bc_manager_t), INTENT(IN) :: bcman
+    CLASS (scalar_manager), INTENT(IN) :: sclrman
+    CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    CHARACTER (LEN=1024) :: msg
+
+    ierr = 0
+
+    IF (ldata%bcid .GT. 0) THEN
+       this%usbc => bcman%find(LINK_BC_TYPE, ldata%bcid)
+       IF (.NOT. ASSOCIATED(this%usbc) ) THEN
+          WRITE (msg, *) 'tributary link ', ldata%linkid, ': unknown link BC id: ', ldata%bcid
+          CALL error_message(msg)
+          ierr = ierr + 1
+       END IF
+    ELSE
+       WRITE (msg, *) 'tributary link ', ldata%linkid, ' requires a link BC, none specified'
+       CALL error_message(msg)
+       ierr = ierr + 1
+    END IF
+    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman)
+
+  END FUNCTION trib_inflow_link_initialize
+
+  ! ----------------------------------------------------------------
   ! SUBROUTINE trib_inflow_link_coeff
   ! ----------------------------------------------------------------
   SUBROUTINE trib_inflow_link_coeff(this, dt, pt1, pt2, cf)
@@ -264,18 +301,92 @@ CONTAINS
     DOUBLE PRECISION :: bcval
     bcval = this%usbc%current_value
 
-     cf%a = 0.0
-     cf%b = 1.0
-     cf%c = 0.0
-     cf%d = 1.0
-     cf%g = pt1%hnow%q + bcval - pt2%hnow%q
-     
-     cf%ap = 1.0
-     cf%bp = 0.0
-     cf%cp = 1.0
-     cf%dp = 0.0
-     cf%gp = pt1%hnow%y - pt2%hnow%y
+    cf%a = 0.0
+    cf%b = 1.0
+    cf%c = 0.0
+    cf%d = 1.0
+    cf%g = pt1%hnow%q + bcval - pt2%hnow%q
+
+    cf%ap = 1.0
+    cf%bp = 0.0
+    cf%cp = 1.0
+    cf%dp = 0.0
+    cf%gp = pt1%hnow%y - pt2%hnow%y
 
   END SUBROUTINE trib_inflow_link_coeff
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE trib_inflow_link_pre_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE trib_inflow_link_pre_transport(this)
+
+    IMPLICIT NONE
+    CLASS (trib_inflow_link), INTENT(INOUT) :: this
+
+    CALL this%internal_bc_link_t%pre_transport()
+
+  END SUBROUTINE trib_inflow_link_pre_transport
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE trib_inflow_link_trans_interp
+  ! ----------------------------------------------------------------
+  SUBROUTINE trib_inflow_link_trans_interp(this, tnow, htime0, htime1)
+
+    IMPLICIT NONE
+    CLASS (trib_inflow_link), INTENT(INOUT) :: this
+    DOUBLE PRECISION, INTENT(IN) :: tnow, htime0, htime1
+
+    CALL this%internal_bc_link_t%trans_interp(tnow, htime0, htime1)
+
+  END SUBROUTINE trib_inflow_link_trans_interp
+
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE trib_inflow_link_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE trib_inflow_link_transport(this, ispec, tstep, tdeltat, hdeltat)
+
+    IMPLICIT NONE
+    CLASS (trib_inflow_link), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: ispec, tstep
+    DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
+    DOUBLE PRECISION :: qup, qdn, qin, cin, cup, cdn
+    CHARACTER (LEN=1024) :: msg
+
+    ! continuity should be conserved
+    qup = this%q_up(.TRUE.)
+    qdn = this%q_down(.TRUE.)
+    qin = qdn - qup
+
+    IF (qin .LE. 0.0) THEN
+       ! zero or tributary outflow do not affect concentration
+       CALL this%internal_bc_link_t%transport(ispec, tstep, tdeltat, hdeltat)
+    ELSE
+       cin = 0.0
+       IF (ASSOCIATED(this%species(ispec)%usbc)) THEN
+          cin = this%species(ispec)%getusbc()
+       ELSE
+          WRITE(msg, *) 'link ', this%id, &
+               &': error: tributary inflow w/o conc BC for species ', &
+               &ispec
+          CALL error_message(msg)
+       END IF
+
+       
+       cup = cin
+       cdn = cin
+       IF (qup .GT. 0.0 .AND. qdn .GT. 0.0) THEN
+          ! flow is downstream
+          cdn = (qup*cup + qin*cin)/qdn
+       ELSE IF (qup .LT. 0.0 .AND. qdn .LT. 0.0) THEN
+          ! flow is upstream
+          cup = (qin*qin + (-qdn)*cdn)/qup
+       !ELSE  flow upstream and downstream (or zero)
+       END IF
+       this%pt(1)%trans%cnow(ispec) = cup
+       this%pt(2)%trans%cnow(ispec) = cdn
+    END IF
+  END SUBROUTINE trib_inflow_link_transport
+
 
 END MODULE nonfluvial_link_module
