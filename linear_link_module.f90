@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-12-01 15:26:26 d3g096
+! Last Change: 2020-12-10 10:01:33 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -306,8 +306,13 @@ CONTAINS
           ierr = ierr + 1
        END IF
 
-       delta_x = length/(this%npoints - 1)
-       slope = (start_el - end_el)/length
+       IF (length .GT. 0.0) THEN
+          delta_x = length/(this%npoints - 1)
+          slope = (start_el - end_el)/length
+       ELSE
+          delta_x = 0.0
+          slope = 0.0
+       END IF
 
        xsect =>  sectman%find(sectid)
        IF (.NOT. ASSOCIATED(xsect)) THEN
@@ -512,12 +517,12 @@ CONTAINS
 
     DO i = 1, this%npoints
        ASSOCIATE(pt => this%pt(i))
+         CALL pt%hnow%zero()
+         CALL pt%hnow%zero()
          pt%hnow%y = MAX(stage, this%pt(i)%thalweg + depth_minimum)
          pt%hold%y = this%pt(i)%hnow%y
          pt%hnow%q = discharge
          pt%hold%q = this%pt(i)%hnow%q
-         pt%hnow%lateral_inflow = 0.0
-         pt%hold%lateral_inflow = 0.0
 
          pt%trans%hnow = pt%hnow
          pt%trans%hold = pt%hnow
