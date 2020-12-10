@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 12, 2017 by William A. Perkins
-! Last Change: 2020-06-10 13:18:34 d3g096
+! Last Change: 2020-12-10 09:41:18 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE point_module
@@ -33,6 +33,8 @@ MODULE point_module
      DOUBLE PRECISION :: froude_num
      DOUBLE PRECISION :: friction_slope, bed_shear
      DOUBLE PRECISION :: courant_num, diffuse_num
+   CONTAINS
+     PROCEDURE :: zero => point_hydro_state_zero
   END type point_hydro_state
 
   ! ----------------------------------------------------------------
@@ -87,6 +89,27 @@ MODULE point_module
   PUBLIC hydro_average
 
 CONTAINS
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE point_hydro_state_zero
+  ! ----------------------------------------------------------------
+  SUBROUTINE point_hydro_state_zero(this)
+
+    IMPLICIT NONE
+    CLASS (point_hydro_state) :: this
+    this%y = 0.0
+    this%q = 0.0
+    this%v = 0.0
+    this%lateral_inflow = 0.0
+    this%froude_num = 0.0
+    this%friction_slope = 0.0
+    this%bed_shear = 0.0
+    this%courant_num = 0.0
+    this%diffuse_num = 0.0
+    
+
+  END SUBROUTINE point_hydro_state_zero
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE hydro_average
@@ -235,7 +258,7 @@ CONTAINS
       IF (deltax .GT. 0.0) THEN
          h%diffuse_num = 2.0*this%k_diff*deltat/deltax/deltax
       ELSE
-         h%diffuse_num = 0.5
+         h%diffuse_num = 0.0
       ENDIF 
 
     END ASSOCIATE
