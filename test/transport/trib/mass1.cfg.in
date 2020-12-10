@@ -33,7 +33,7 @@ MASS1 Configuration File - Normal Flow Test - $Id$
 "link-bc-files.dat" 	/ linkBC file name
 "@SRC@/initial.dat"        / initial file name
 "output.out" 	 	/ output file name
-"@SRC@/transport-bc-files.dat"         / gas transport file name
+"transport-bc-files.dat"         / gas transport file name
 no-tempbcfiles        / temperature input
 no-weatherfile	                / weather files
 no-hydropower 	 	                / hydropower file name

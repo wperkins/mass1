@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created January 19, 2017 by William A. Perkins
-# Last Change: 2020-05-19 14:04:02 d3g096
+# Last Change: 2020-12-10 13:40:35 d3g096
 # -------------------------------------------------------------
 
 
@@ -35,10 +35,12 @@ add_subdirectory(flow/normal-hydro)
 add_subdirectory(flow/normal-metric)
 add_subdirectory(flow/normal)
 add_subdirectory(flow/normal-dsbc)
+add_subdirectory(flow/trib)
 
 add_subdirectory(transport/advection-1-segment)
 add_subdirectory(transport/lateral-inflow)
 add_subdirectory(transport/pulse)
+add_subdirectory(transport/trib)
 add_subdirectory(transport/hlink-lateral-inflow)
 #add_subdirectory(transport/hlink-advection-1-segment)
 #add_subdirectory(transport/hlink-advection-diffusion-1-segment)
