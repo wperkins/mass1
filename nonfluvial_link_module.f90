@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2020-12-09 11:09:42 d3g096
+! Last Change: 2020-12-10 09:21:13 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -33,6 +33,7 @@ MODULE nonfluvial_link_module
    CONTAINS
      PROCEDURE :: max_courant => internal_bc_max_courant
      PROCEDURE :: max_diffuse => internal_bc_max_diffuse
+     PROCEDURE :: check => internal_bc_check
   END type internal_bc_link_t
 
   ! ----------------------------------------------------------------
@@ -120,6 +121,29 @@ CONTAINS
   END FUNCTION internal_bc_max_diffuse
 
   ! ----------------------------------------------------------------
+  !  FUNCTION internal_bc_check
+  ! ----------------------------------------------------------------
+  FUNCTION internal_bc_check(this) RESULT (ierr)
+
+    IMPLICIT NONE
+    INTEGER :: ierr
+    CLASS (internal_bc_link_t), INTENT(INOUT) :: this
+    CHARACTER (LEN=1024) :: msg
+
+    ierr = this%linear_link_t%check()
+
+    IF (this%points() .NE. 2) THEN
+       WRITE(msg, *) 'link ', this%id, &
+            &': internal boundary link must have 2 points, ',&
+            &this%points(), ' points specified'
+       CALL error_message(msg)
+       ierr = ierr + 1
+    END IF
+
+  END FUNCTION internal_bc_check
+
+
+  ! ----------------------------------------------------------------
   ! SUBROUTINE discharge_link_coeff
   ! ----------------------------------------------------------------
   SUBROUTINE discharge_link_coeff(this, dt, pt1, pt2, cf)
@@ -178,7 +202,7 @@ CONTAINS
        ierr = ierr + 1
     END IF
 
-    ierr = ierr + this%linear_link_t%initialize(ldata, bcman, sclrman, metman)
+    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman)
   END FUNCTION hydro_link_initialize
 
 
@@ -351,41 +375,48 @@ CONTAINS
     INTEGER, INTENT(IN) :: ispec, tstep
     DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
     DOUBLE PRECISION :: qup, qdn, qin, cin, cup, cdn
+    INTEGER :: i
     CHARACTER (LEN=1024) :: msg
 
+    DO i = 1, this%npoints
+       this%pt(i)%trans%cold(ispec) = this%pt(i)%trans%cnow(ispec)
+    END DO
+    
     ! continuity should be conserved
     qup = this%q_up(.TRUE.)
     qdn = this%q_down(.TRUE.)
-    qin = qdn - qup
+    qin = this%usbc%current_value ! qdn - qup 
 
-    IF (qin .LE. 0.0) THEN
-       ! zero or tributary outflow do not affect concentration
-       CALL this%internal_bc_link_t%transport(ispec, tstep, tdeltat, hdeltat)
+    ! FIXME: check to make sure ucon/dcon are valid
+    cup = this%ucon%conc(ispec)
+    cdn = this%dcon%conc(ispec)
+
+    cin = 0.0
+    IF (ASSOCIATED(this%species(ispec)%usbc)) THEN
+       cin = this%species(ispec)%getusbc()
     ELSE
-       cin = 0.0
-       IF (ASSOCIATED(this%species(ispec)%usbc)) THEN
-          cin = this%species(ispec)%getusbc()
-       ELSE
-          WRITE(msg, *) 'link ', this%id, &
-               &': error: tributary inflow w/o conc BC for species ', &
-               &ispec
-          CALL error_message(msg)
-       END IF
-
-       
-       cup = cin
-       cdn = cin
-       IF (qup .GT. 0.0 .AND. qdn .GT. 0.0) THEN
-          ! flow is downstream
-          cdn = (qup*cup + qin*cin)/qdn
-       ELSE IF (qup .LT. 0.0 .AND. qdn .LT. 0.0) THEN
-          ! flow is upstream
-          cup = (qin*qin + (-qdn)*cdn)/qup
-       !ELSE  flow upstream and downstream (or zero)
-       END IF
-       this%pt(1)%trans%cnow(ispec) = cup
-       this%pt(2)%trans%cnow(ispec) = cdn
+       WRITE(msg, *) 'link ', this%id, &
+            &': error: tributary inflow w/o conc BC for species ', &
+            &ispec
+       CALL error_message(msg)
     END IF
+
+    IF (qup .GE. 0.0) THEN
+       IF (qin .GT. 0.0) THEN
+          cdn = (qup*cup + qin*cin)/qdn
+       ELSE
+          cdn = cup
+       END IF
+    END IF
+    IF (qdn .LE. 0.0) THEN
+       IF (qin .GT. 0.0) THEN
+          cup = (qin*qin + (-qdn)*cdn)/qup
+       ELSE
+          cup = cdn
+       END IF
+    END IF
+    this%pt(1)%trans%cnow(ispec) = cup
+    this%pt(2)%trans%cnow(ispec) = cdn
   END SUBROUTINE trib_inflow_link_transport
 
 
