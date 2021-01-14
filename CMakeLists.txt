@@ -7,7 +7,7 @@
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 # Created December 29, 2016 by William A. Perkins
-# Last Change: 2020-12-08 13:18:22 d3g096
+# Last Change: 2021-01-14 09:10:29 d3g096
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
@@ -253,6 +253,7 @@ add_library(mass1lib STATIC
   "${CMAKE_CURRENT_BINARY_DIR}/banner.f90"
   bc_module.f90
   coeff.f90
+  compartment_transport_module.f90
   cross_section.f90
   dlist_module.f90
   flow_coeff.f90
