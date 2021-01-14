@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created April  3, 2020 by William A. Perkins
-! Last Change: 2020-12-03 14:09:51 d3g096
+! Last Change: 2021-01-14 09:42:11 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE storage_module
@@ -27,6 +27,9 @@ MODULE storage_module
   ! The basis for a "storage" or bucket.  This has no state (stage),
   ! which is expected to be managed by the client. This only defines
   ! the relationship between stage, surface, area, volume, etc.
+  !
+  ! Note that there is not state here, only a descriptors of the
+  ! volume and how they changes with surface elevation.
   ! ----------------------------------------------------------------
   
   TYPE, PUBLIC, ABSTRACT :: storage_t

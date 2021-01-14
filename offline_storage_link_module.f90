@@ -12,6 +12,7 @@ MODULE offline_storage_link_module
   USE bc_module
   USE nonfluvial_link_module
   USE storage_factory_module
+  USE compartment_transport_module
 
   IMPLICIT NONE
 
@@ -25,10 +26,16 @@ MODULE offline_storage_link_module
      ! The actual storage bucket
      TYPE (storage_ptr) :: storage
      DOUBLE PRECISION :: yconnect
+     CLASS (compartment_model), POINTER :: smodel
    CONTAINS
      PROCEDURE :: construct => offline_storage_link_construct
      PROCEDURE :: coeff => offline_storage_link_coeff
      PROCEDURE :: readaux => offline_storage_link_readaux
+     PROCEDURE :: pre_transport => offline_storage_pre_transport
+     PROCEDURE :: trans_interp => offline_storage_trans_interp
+     PROCEDURE :: transport => offline_storage_transport
+     PROCEDURE :: read_trans_restart => offline_storage_read_trans_restart
+     PROCEDURE :: write_trans_restart => offline_storage_write_trans_restart
      PROCEDURE :: destroy => offline_storage_link_destroy
   END type offline_storage_link
 
@@ -44,6 +51,8 @@ CONTAINS
 
     CALL this%internal_bc_link_t%construct()
     this%needaux = .TRUE.
+
+    ALLOCATE(this%smodel)
 
   END SUBROUTINE offline_storage_link_construct
 
@@ -147,6 +156,113 @@ CONTAINS
   END FUNCTION offline_storage_link_readaux
 
   ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_pre_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_pre_transport(this)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+
+    DOUBLE PRECISION :: qup, qdn, qin
+    DOUBLE PRECISION :: inflow, inflow_old
+    DOUBLE PRECISION :: outflow, outflow_old
+    DOUBLE PRECISION :: lateral_inflow, lateral_inflow_old
+    DOUBLE PRECISION :: storage, storage_old
+
+    CALL this%internal_bc_link_t%pre_transport()
+
+    storage = this%storage%p%volume(this%pt(1)%hnow%y)
+    storage_old = this%storage%p%volume(this%pt(1)%hold%y)
+
+    qup = this%pt(1)%hnow%q
+    qdn = this%pt(this%points())%hnow%q
+    qin = qup - qdn
+
+    IF (qin .LT. 0.0) THEN
+       inflow = ABS(qin)
+       outflow = 0.0
+    ELSE
+       outflow = qin
+       inflow = ABS(qin)
+    ENDIF
+    
+    qup = this%pt(1)%hold%q
+    qdn = this%pt(this%points())%hold%q
+    qin = qup - qdn
+
+    IF (qin .LT. 0.0) THEN
+       inflow = ABS(qin)
+       outflow = 0.0
+    ELSE
+       outflow = qin
+       inflow = ABS(qin)
+    ENDIF
+
+    lateral_inflow = 0.0
+    lateral_inflow_old = 0.0
+
+    CALL this%smodel%pre_transport(inflow, inflow_old, &
+         &outflow, outflow_old, lateral_inflow, lateral_inflow_old, &
+         &storage, storage_old)
+
+  END SUBROUTINE offline_storage_pre_transport
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_trans_interp
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_trans_interp(this, tnow, htime0, htime1)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    DOUBLE PRECISION, INTENT(IN) :: tnow, htime0, htime1
+
+  END SUBROUTINE offline_storage_trans_interp
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_read_trans_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_read_trans_restart(this, iunit, nspecies)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: iunit
+    INTEGER, INTENT(IN) :: nspecies
+
+    CALL this%internal_bc_link_t%read_trans_restart(iunit, nspecies)
+    CALL this%smodel%read_restart(iunit, nspecies)
+
+  END SUBROUTINE offline_storage_read_trans_restart
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_write_trans_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_write_trans_restart(this, iunit, nspecies)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(IN) :: this
+    INTEGER, INTENT(IN) :: iunit, nspecies
+
+    CALL this%internal_bc_link_t%write_trans_restart(iunit, nspecies)
+    CALL this%smodel%write_restart(iunit, nspecies)
+
+
+  END SUBROUTINE offline_storage_write_trans_restart
+
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_transport(this, ispec, tstep, tdeltat, hdeltat)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: ispec, tstep
+    DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
+
+
+  END SUBROUTINE offline_storage_transport
+
+  ! ----------------------------------------------------------------
   ! SUBROUTINE offline_storage_link_destroy
   ! ----------------------------------------------------------------
   SUBROUTINE offline_storage_link_destroy(this)
@@ -157,6 +273,7 @@ CONTAINS
     DEALLOCATE(this%storage%p)
     NULLIFY(this%storage%p)
     CALL this%internal_bc_link_t%destroy()
+    DEALLOCATE(this%smodel)
 
   END SUBROUTINE offline_storage_link_destroy
 

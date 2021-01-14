@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created December 15, 2020 by  William Perkins 
-! Last Change: 2021-01-14 09:30:55 d3g096
+! Last Change: 2021-01-14 12:28:43 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -15,6 +15,7 @@
 ! ----------------------------------------------------------------
 MODULE compartment_transport_module
 
+  USE utility
   USE point_module
   USE scalar_module
 
@@ -33,6 +34,8 @@ MODULE compartment_transport_module
      PROCEDURE :: trans_interp => compartment_model_transport_interp
      PROCEDURE :: transport => compartment_model_transport
      PROCEDURE :: conc => compartment_model_conc
+     PROCEDURE :: read_restart => compartment_read_restart
+     PROCEDURE :: write_restart => compartment_write_restart
   END type compartment_model
   
   DOUBLE PRECISION, PRIVATE, PARAMETER :: compartment_min_storage = 1.0D-05
@@ -162,6 +165,58 @@ CONTAINS
     cs = this%avgpt%trans%cnow(ispec)
 
   END SUBROUTINE compartment_model_conc
+
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE compartment_read_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE compartment_read_restart(this, iunit, nspecies)
+
+    IMPLICIT NONE
+    CLASS (compartment_model), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: iunit
+    INTEGER, INTENT(IN) :: nspecies
+
+    INTEGER :: s, iostat
+    CHARACTER (LEN=1024) :: msg
+    
+    READ(iunit, IOSTAT=iostat) &
+         &(this%avgpt%trans%cnow(s), s = 1, nspecies), &
+         &(this%avgpt%trans%cold(s), s = 1, nspecies), &
+         &this%avgpt%trans%bedtemp
+
+    IF (iostat .NE. 0) THEN
+       WRITE(msg, *) 'compartment_model: problem reading restart'
+       CALL error_message(msg, fatal=.TRUE.)
+    END IF
+
+  END SUBROUTINE compartment_read_restart
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE compartment_write_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE compartment_write_restart(this, iunit, nspecies)
+
+    IMPLICIT NONE
+
+    CLASS (compartment_model), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: iunit
+    INTEGER, INTENT(IN) :: nspecies
+
+    INTEGER :: s, iostat
+    CHARACTER (LEN=1024) :: msg
+    
+    WRITE(iunit, IOSTAT=iostat) &
+         &(this%avgpt%trans%cnow(s), s = 1, nspecies), &
+         &(this%avgpt%trans%cold(s), s = 1, nspecies), &
+         &this%avgpt%trans%bedtemp
+
+    IF (iostat .NE. 0) THEN
+       WRITE(msg, *) 'compartment_model: problem writing restart'
+       CALL error_message(msg, fatal=.TRUE.)
+    END IF
+
+  END SUBROUTINE compartment_write_restart
 
 
 END MODULE compartment_transport_module
