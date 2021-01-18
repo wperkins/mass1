@@ -1,3 +1,4 @@
+set colors classic
 
 set term post enh eps color dashed "Helvetica" 18
 set output 'plot.eps'
@@ -46,8 +47,8 @@ set ylabel 'Discharge, m^{3}/s'
 set format y '%4.1f'
 set key title "Channel"
 
-plot 'tsInlet.out' using 1:4 title "Upstream" w lines ls 1, \
-     'tsOutlet.out' using 1:4 title "Downstream" w lines ls 3
+plot 'tsInlet.out' using 1:4 title "Inlet" w lines ls 1, \
+     'tsOutlet.out' using 1:4 title "Outlet" w lines ls 3
 
 unset multiplot
 
