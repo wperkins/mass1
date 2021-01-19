@@ -12,6 +12,7 @@ MODULE hydrologic_link_module
   USE section_handler_module
   USE mass1_config
   USE linear_link_module
+  USE compartment_transport_module
 
   IMPLICIT NONE
 
@@ -45,7 +46,7 @@ MODULE hydrologic_link_module
      TYPE (point_t) :: avgpt
 
      ! for transport
-     DOUBLE PRECISION :: trans_storage, trans_storage_old
+     CLASS (compartment_model), POINTER :: cmodel
      
    CONTAINS
      PROCEDURE :: construct => hydrologic_link_construct
@@ -61,6 +62,7 @@ MODULE hydrologic_link_module
      PROCEDURE :: hydro_update => hydrologic_link_hupdate
      PROCEDURE :: max_courant => hydrologic_link_max_courant
      PROCEDURE :: max_diffuse => hydrologic_link_max_diffuse
+     PROCEDURE :: pre_transport => hydrologic_link_pre_transport
      PROCEDURE :: trans_interp => hydrologic_link_trans_interp
      PROCEDURE :: transport => hydrologic_link_transport
      PROCEDURE :: set_bed_temp => hydrologic_link_bedtemp
@@ -84,7 +86,7 @@ CONTAINS
     this%outflow_old = 0.0
     this%storage = 0.0
     this%storage_old = 0.0
-    
+    NULLIFY(this%cmodel)
 
   END SUBROUTINE hydrologic_link_construct
 
@@ -129,11 +131,21 @@ CONTAINS
        END IF
     END IF
 
-    ALLOCATE(this%avgpt%trans%cnow(sclrman%nspecies))
-    ALLOCATE(this%avgpt%trans%cold(sclrman%nspecies))
-    this%avgpt%trans%cnow = 0.0
-    this%avgpt%trans%cold = 0.0
-
+    IF (sclrman%nspecies .GT. 0) THEN
+       ALLOCATE(this%cmodel)
+       CALL this%cmodel%construct(sclrman%nspecies)
+       ALLOCATE(this%avgpt%trans%cnow(sclrman%nspecies))
+       ALLOCATE(this%avgpt%trans%cold(sclrman%nspecies))
+       this%avgpt%trans%cnow = 0.0
+       this%avgpt%trans%cold = 0.0
+       this%avgpt%trans%bedcond = ldata%bedcond
+       this%avgpt%trans%beddensity = ldata%beddensity
+       this%avgpt%trans%bedspheat = ldata%bedspheat
+       this%avgpt%trans%beddepth = ldata%beddepth
+       this%avgpt%trans%bedtemp = ldata%bedgwtemp
+       this%avgpt%trans%bedtempold = ldata%bedgwtemp
+       this%avgpt%trans%bedgwtemp = ldata%bedgwtemp
+    END IF
     DEALLOCATE(my_ldata)
     
   END FUNCTION hydrologic_link_initialize
@@ -167,13 +179,17 @@ CONTAINS
        this%avgpt%kstrick = this%pt(1)%kstrick
        this%avgpt%k_diff = this%pt(1)%k_diff
        this%avgpt%thalweg = 0.5*(this%pt(1)%thalweg + this%pt(this%npoints)%thalweg)
-       this%avgpt%trans%bedcond = this%pt(1)%trans%bedcond
-       this%avgpt%trans%beddensity = this%pt(1)%trans%beddensity
-       this%avgpt%trans%bedspheat = this%pt(1)%trans%bedspheat
-       this%avgpt%trans%beddepth = this%pt(1)%trans%beddepth
-       this%avgpt%trans%bedtemp = this%pt(1)%trans%bedgwtemp
-       this%avgpt%trans%bedtempold = this%pt(1)%trans%bedgwtemp
-       this%avgpt%trans%bedgwtemp = this%pt(1)%trans%bedgwtemp
+       IF (ASSOCIATED(this%cmodel)) THEN
+          this%cmodel%avgpt%xsection%p => this%pt(1)%xsection%p
+          this%cmodel%avgpt%thalweg = this%avgpt%thalweg
+          this%cmodel%avgpt%trans%bedcond = this%pt(1)%trans%bedcond
+          this%cmodel%avgpt%trans%beddensity = this%pt(1)%trans%beddensity
+          this%cmodel%avgpt%trans%bedspheat = this%pt(1)%trans%bedspheat
+          this%cmodel%avgpt%trans%beddepth = this%pt(1)%trans%beddepth
+          this%cmodel%avgpt%trans%bedtemp = this%pt(1)%trans%bedgwtemp
+          this%cmodel%avgpt%trans%bedtempold = this%pt(1)%trans%bedgwtemp
+          this%cmodel%avgpt%trans%bedgwtemp = this%pt(1)%trans%bedgwtemp
+       END IF
     END SELECT
 
     this%L = ABS(this%pt(1)%x - this%pt(this%npoints)%x)
@@ -232,6 +248,13 @@ CONTAINS
     this%storage_old = this%storage
     this%y = this%pt(this%npoints)%hnow%y - this%pt(this%npoints)%thalweg
 
+    IF (ASSOCIATED(this%cmodel)) THEN
+       this%cmodel%avgpt%trans%cnow = c
+       this%cmodel%avgpt%trans%cold = c
+       this%avgpt%trans%cnow = c
+       this%avgpt%trans%cold = c
+    END IF
+
     ! WRITE(*,*) "Hydrologic link ", this%id, ": Q = ", discharge, ", S = ", this%storage
 
   END SUBROUTINE hydrologic_link_set_initial
@@ -262,11 +285,6 @@ CONTAINS
        END ASSOCIATE
     END DO
     this%avgpt%hold = this%avgpt%hnow
-    IF (ASSOCIATED(this%species)) THEN
-       this%avgpt%trans%hnow = this%avgpt%hold
-       this%avgpt%trans%xsprop = this%avgpt%xsprop
-       this%trans_storage = this%storage
-    END IF
 
     ! get upstream inflow (volume)
 
@@ -480,44 +498,9 @@ CONTAINS
     INTEGER, INTENT(IN) :: iunit
     INTEGER, INTENT(IN) :: nspecies
 
-    INTEGER :: i, s, iostat, ierr = 0
-    CHARACTER (LEN=1024) :: msg
-    
-    DOUBLE PRECISION :: c(nspecies), cold(nspecies), btemp
-
-    ierr = 0
-    
     CALL this%linear_link_t%read_trans_restart(iunit, nspecies)
+    CALL this%cmodel%read_restart(iunit, nspecies)
     
-    READ(iunit, IOSTAT=iostat) &
-         &(c(s), s = 1, nspecies), &
-         &(cold(s), s = 1, nspecies), &
-         &btemp
-
-    IF (IS_IOSTAT_END(iostat)) THEN
-       WRITE(msg, *) 'link ', this%id, &
-            &': error reading (transport) restart for point ', i
-       CALL error_message(msg)
-       ierr = ierr + 1
-    ELSE IF (iostat .NE. 0) THEN
-       WRITE(msg, *) 'link ', this%id, &
-            &': error reading (transport) restart for point ', i
-       CALL error_message(msg)
-       ierr = ierr + 1
-    END IF
-    DO s = 1, nspecies
-       this%avgpt%trans%cnow(s) = c(s)
-       this%avgpt%trans%cold(s) = cold(s)
-    END DO
-    this%avgpt%trans%hnow = this%avgpt%hnow
-    this%avgpt%trans%hold = this%avgpt%trans%hnow
-    this%avgpt%trans%bedtemp = btemp
-
-
-    IF (ierr .GT. 0) THEN
-       WRITE(msg, *) 'problem reading restart (transport) for link', this%id
-       CALL error_message(msg, fatal=.TRUE.)
-    END IF
 
   END SUBROUTINE hydrologic_link_read_trans_restart
 
@@ -550,21 +533,34 @@ CONTAINS
     INTEGER, INTENT(IN) :: iunit
     INTEGER, INTENT(IN) :: nspecies
 
-    INTEGER :: s, iostat
-    CHARACTER (LEN=1024) :: msg
-
     CALL this%linear_link_t%write_trans_restart(iunit, nspecies)
-    
-    WRITE(iunit, IOSTAT=iostat) &
-         &(this%avgpt%trans%cnow(s), s = 1, nspecies), &
-         &(this%avgpt%trans%cold(s), s = 1, nspecies), &
-         &this%avgpt%trans%bedtemp
-    IF (iostat .NE. 0) THEN
-       WRITE(msg, *) 'problem writing restart (transport) for link', this%id
-       CALL error_message(msg, fatal=.TRUE.)
-    END IF
+    CALL this%cmodel%write_restart(iunit, nspecies)
 
   END SUBROUTINE hydrologic_link_write_trans_restart
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE hydrologic_link_pre_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE hydrologic_link_pre_transport(this)
+
+    IMPLICIT NONE
+    CLASS (hydrologic_link), INTENT(INOUT) :: this
+
+    ! Just transfer the hydro to the compartment model; don't mess
+    ! with the transport
+    this%cmodel%avgpt%hnow = this%avgpt%hnow
+    this%cmodel%avgpt%hold = this%avgpt%hnow
+    this%cmodel%avgpt%xsprop = this%avgpt%xsprop
+    this%cmodel%avgpt%xspropold = this%avgpt%xspropold
+    
+    CALL this%cmodel%pre_transport(&
+         &this%pt(1)%hnow%q, this%pt(1)%hold%q, &
+         &this%pt(this%points())%hnow%q, this%pt(this%points())%hold%q, &
+         &this%avgpt%hnow%lateral_inflow*this%L, this%avgpt%hold%lateral_inflow*this%L, &
+         &this%storage, this%storage_old)
+
+  END SUBROUTINE hydrologic_link_pre_transport
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE hydrologic_link_trans_interp
@@ -575,15 +571,8 @@ CONTAINS
     
     CLASS (hydrologic_link), INTENT(INOUT) :: this
     DOUBLE PRECISION, INTENT(IN) :: tnow, htime0, htime1
-    DOUBLE PRECISION :: dlinear_interp
 
-    CALL this%linear_link_t%trans_interp(tnow, htime0, htime1)
-    this%avgpt%trans%hold = this%avgpt%trans%hnow
-    this%avgpt%xspropold = this%avgpt%xsprop
-    CALL this%avgpt%transport_interp(tnow, htime0, htime1)
-
-    this%trans_storage_old = this%trans_storage
-    this%trans_storage = dlinear_interp(this%storage_old, htime0, this%storage, htime1, tnow)
+    CALL this%cmodel%trans_interp(tnow, htime0, htime1)
 
   END SUBROUTINE hydrologic_link_trans_interp
 
@@ -597,33 +586,14 @@ CONTAINS
     INTEGER, INTENT(IN) :: ispec, tstep
     DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
 
-    DOUBLE PRECISION :: inflow, outflow, latflow
-    DOUBLE PRECISION :: ci, co, csnow, csold, clat
+    DOUBLE PRECISION :: inflow, latflow, ci, clat, co, cs
 
-    INTEGER :: i
     CHARACTER (LEN=1024) :: msg
 
-    ! if there is no storage, just copy the upstream concencentration 
-    IF (this%trans_storage .LT. hydrologic_min_storage) THEN
-       CALL this%linear_link_t%transport(ispec, tstep, tdeltat, hdeltat)
-       this%avgpt%trans%cnow(ispec) = this%pt(1)%trans%cnow(ispec)
-       RETURN
-    END IF
-
-    DO i = 1, this%npoints
-       this%pt(i)%trans%cold(ispec) = this%pt(i)%trans%cnow(ispec)
-    END DO
-    this%avgpt%trans%cold(ispec) = this%avgpt%trans%cnow(ispec)
-
     inflow = this%pt(1)%trans%hnow%q
-    outflow = this%pt(this%npoints)%trans%hnow%q
-    latflow = this%avgpt%trans%hnow%lateral_inflow*this%L
-
-    ! if lateral outflow, just add it to outflow
-    IF (latflow .LE. 0.0) THEN
-       outflow = outflow - latflow
-       latflow = 0.0
-    END IF
+    latflow = this%pt(1)%trans%hnow%lateral_inflow
+    ! to get cs
+    CALL this%cmodel%conc(ispec, ci, co, cs)
 
     ! reverse flow is not allow, so just get upstream conc
     
@@ -640,12 +610,9 @@ CONTAINS
           CALL error_message(msg)
        END IF
     END IF
-    this%pt(1)%trans%cnow(ispec) = ci
-
-    csold = this%avgpt%trans%cold(ispec)
     
     IF (this%species(ispec)%scalar%dolatinflow) THEN
-       clat = csold
+       clat = cs
        IF (latflow .GE. 0.0) THEN
           IF (ASSOCIATED(this%species(ispec)%latbc)) THEN
              clat = this%species(ispec)%latbc%current_value
@@ -653,39 +620,14 @@ CONTAINS
        END IF
     END IF
 
-    csnow = csold               ! fall back
-    
-#if 0
-    co = csold                  ! explicit upwind
-    IF (this%trans_storage .GT. hydrologic_min_storage) THEN
-       csnow = tdeltat*inflow*ci &
-            &+ tdeltat*latflow*clat &
-            &- tdeltat*outflow*co &
-            &+ csold*this%trans_storage_old
-       csnow = csnow/this%trans_storage
-    END IF
-#else
-    ! implicit upwind
-    IF ((tdeltat*outflow + this%trans_storage) .GT. hydrologic_min_storage) THEN
-       csnow = tdeltat*inflow*ci &
-            &+ tdeltat*latflow*clat &
-            &+ csold*this%trans_storage_old
-       csnow = csnow/(tdeltat*outflow+this%trans_storage)
-       co = csnow
-    END IF
-    ! WRITE(*,*) inflow, outflow, latflow, this%trans_storage_old, this%trans_storage
-    ! WRITE(*,*) ci, co, csold, csnow
-#endif
-    this%avgpt%trans%cnow(ispec) = csnow
+    CALL this%cmodel%transport(ispec, ci, clat, tstep, tdeltat, &
+         &this%species(ispec))
+
+    ! get the results
+    CALL this%cmodel%conc(ispec, ci, co, cs)
+    this%pt(1)%trans%cnow(ispec) = ci
     this%pt(this%npoints)%trans%cnow(ispec) = co
 
-    ! do scalar specifiec source term
-    ci = this%avgpt%trans%cnow(ispec)
-    co = this%species(ispec)%scalar%source(&
-            &ci, this%avgpt%trans, tdeltat, &
-            &this%species(ispec)%met)
-    this%avgpt%trans%cnow(ispec) = co
-    
   END SUBROUTINE hydrologic_link_transport
 
   ! ----------------------------------------------------------------
@@ -698,9 +640,7 @@ CONTAINS
     DOUBLE PRECISION, INTENT(IN) :: tbed
 
     CALL this%linear_link_t%set_bed_temp(tbed)
-    
-    this%avgpt%trans%bedgwtemp = tbed
-    
+    CALL this%cmodel%bed_temp(tbed)
 
   END SUBROUTINE hydrologic_link_bedtemp
 
@@ -714,7 +654,7 @@ CONTAINS
     DOUBLE PRECISION, INTENT(IN) :: dbed
     
     CALL this%linear_link_t%set_bed_depth(dbed)
-    this%avgpt%trans%beddepth = dbed
+    CALL this%cmodel%bed_depth(dbed)
 
   END SUBROUTINE hydrologic_link_beddepth
   

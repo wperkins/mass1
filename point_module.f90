@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 12, 2017 by William A. Perkins
-! Last Change: 2020-12-10 09:41:18 d3g096
+! Last Change: 2021-01-15 12:20:14 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE point_module
@@ -86,7 +86,7 @@ MODULE point_module
      TYPE (point_t), POINTER :: p
   END type point_ptr
 
-  PUBLIC hydro_average
+  PUBLIC hydro_average, hydro_interp
 
 CONTAINS
 
