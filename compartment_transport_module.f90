@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created December 15, 2020 by  William Perkins 
-! Last Change: 2021-01-19 07:33:17 d3g096
+! Last Change: 2021-01-19 07:58:29 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -125,7 +125,7 @@ CONTAINS
     this%my_storage = storage_old
     this%my_storage_old = storage_old
 
-    WRITE(*, *) 'compartment_model_pretransport: ', inflow, outflow, storage
+    ! WRITE(*, *) 'compartment_model_pretransport: ', inflow, outflow, storage
 
   END SUBROUTINE compartment_model_pretransport
 
