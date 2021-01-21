@@ -7,7 +7,7 @@
   ! ----------------------------------------------------------------
   ! ----------------------------------------------------------------
   ! Created February 18, 2019 by William A. Perkins
-  ! Last Change: 2020-05-07 06:38:42 d3g096
+  ! Last Change: 2021-01-21 13:03:01 d3g096
   ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE transport_link_module
@@ -25,6 +25,7 @@ MODULE transport_link_module
   USE scalar_module
   USE met_zone
   USE transport_module
+  USE json_module
 
   IMPLICIT NONE
 
@@ -61,7 +62,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION transport_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION transport_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION transport_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -70,8 +71,9 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
 
-    ierr = this%linear_link_t%initialize(ldata, bcman, sclrman, metman)
+    ierr = this%linear_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
     NULLIFY(this%c)
     NULLIFY(this%dxx)
     NULLIFY(this%f)

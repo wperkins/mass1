@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July  3, 2017 by William A. Perkins
-! Last Change: 2020-07-22 13:01:01 d3g096
+! Last Change: 2021-01-21 13:06:16 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE fluvial_link_module
@@ -21,6 +21,7 @@ MODULE fluvial_link_module
   USE scalar_module
   USE utility
   USE flow_coeff
+  USE json_module
 
   IMPLICIT NONE
 
@@ -64,7 +65,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION fluvial_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION fluvial_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION fluvial_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -73,9 +74,11 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
+
     CHARACTER (LEN=1024) :: msg
 
-    ierr = this%transport_link_t%initialize(ldata, bcman, sclrman, metman)
+    ierr = this%transport_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
 
     this%lpiexp = ldata%lpiexp
     this%gravity = ldata%gravity
@@ -179,7 +182,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION fluvial_hydro_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION fluvial_hydro_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION fluvial_hydro_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -188,6 +191,7 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
 
     CHARACTER (LEN=1024) :: msg
 
@@ -206,7 +210,7 @@ CONTAINS
        ierr = ierr + 1
     END IF
 
-    ierr = ierr + this%fluvial_link%initialize(ldata, bcman, sclrman, metman)
+    ierr = ierr + this%fluvial_link%initialize(ldata, bcman, sclrman, metman, auxdata)
   END FUNCTION fluvial_hydro_link_initialize
 
   

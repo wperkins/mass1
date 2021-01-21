@@ -10,7 +10,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 20, 2017 by William A. Perkins
-! Last Change: 2020-12-08 13:19:08 d3g096
+! Last Change: 2021-01-21 12:51:55 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -604,31 +604,24 @@ CONTAINS
 
        CALL link%construct()
 
-       IF (link%initialize(ldata, bcman, sclrman, metman) .NE. 0) THEN
-          WRITE(msg, *) TRIM(theconfig%link_file), ': link record ', recno, &
-               & ', link id = ', ldata%linkid, ': error'
-          CALL error_message(msg)
-          ierr = ierr + 1
-       END IF
-
        IF (link%needaux) THEN
           IF (.NOT. this%aux%loaded) THEN
              CALL this%aux%load(theconfig%link_aux_file)
           END IF
           linkaux => this%aux%get(ldata%linkid)
-          IF (ASSOCIATED(linkaux)) THEN
-             IF (link%readaux(linkaux) .NE. 0) THEN
-                WRITE(msg, *) TRIM(theconfig%link_file), &
-                     &': erroroneous auxiliary data for link id = ', link%id
-                CALL error_message(msg)
-                ierr = ierr + 1
-             END IF
-          ELSE
+          IF (.NOT. ASSOCIATED(linkaux)) THEN
              WRITE(msg, *) TRIM(theconfig%link_file), &
                   &': no auxiliary data for link id = ', link%id, ' found'
              CALL error_message(msg)
              ierr = ierr + 1
           END IF
+       END IF
+
+       IF (link%initialize(ldata, bcman, sclrman, metman, linkaux) .NE. 0) THEN
+          WRITE(msg, *) TRIM(theconfig%link_file), ': link record ', recno, &
+               & ', link id = ', ldata%linkid, ': error'
+          CALL error_message(msg)
+          ierr = ierr + 1
        END IF
 
        CALL this%links%push(link)

@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created March  8, 2017 by William A. Perkins
-! Last Change: 2020-12-01 13:57:24 d3g096
+! Last Change: 2021-01-21 12:59:00 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE link_module
@@ -110,7 +110,6 @@ MODULE link_module
      PROCEDURE :: construct => link_construct
      PROCEDURE (init_proc), DEFERRED :: initialize
      PROCEDURE (readpts_proc), DEFERRED :: readpts
-     PROCEDURE :: readaux => link_readaux
      PROCEDURE :: points => link_points
      PROCEDURE :: length => link_length
      PROCEDURE (destroy_proc), DEFERRED :: destroy
@@ -162,8 +161,8 @@ MODULE link_module
   END type link_t
 
   ABSTRACT INTERFACE
-     FUNCTION init_proc(this, ldata, bcman, sclrman, metman) RESULT(ierr)
-       IMPORT :: link_t, link_input_data, bc_manager_t, scalar_manager, met_zone_manager_t
+     FUNCTION init_proc(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
+       IMPORT :: link_t, link_input_data, bc_manager_t, scalar_manager, met_zone_manager_t, json_value
        IMPLICIT NONE
        INTEGER :: ierr
        CLASS (link_t), INTENT(INOUT) :: this
@@ -171,6 +170,7 @@ MODULE link_module
        CLASS (bc_manager_t), INTENT(IN) :: bcman
        CLASS (scalar_manager), INTENT(IN) :: sclrman
        CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+       TYPE (json_value), POINTER, INTENT(IN) :: auxdata
      END FUNCTION init_proc
 
      FUNCTION readpts_proc(this, theconfig, sectman, punit, lineno) RESULT (ierr)
@@ -418,46 +418,6 @@ CONTAINS
     NULLIFY(this%dcon)
 
   END SUBROUTINE link_construct
-
-
-  ! ----------------------------------------------------------------
-  !  FUNCTION link_initialize
-  ! ----------------------------------------------------------------
-  FUNCTION link_initialize(this, ldata, bcman, sclrman) RESULT(ierr)
-
-    IMPLICIT NONE
-    INTEGER :: ierr
-    CLASS (link_t), INTENT(INOUT) :: this
-    CLASS (link_input_data), INTENT(IN) :: ldata
-    CLASS (bc_manager_t), INTENT(IN) :: bcman
-    CLASS (scalar_manager), INTENT(IN) :: sclrman
-
-    ierr = 0
-
-  END FUNCTION link_initialize
-
-  ! ----------------------------------------------------------------
-  !  FUNCTION link_readaux
-  !
-  ! It is an error to call this method. Child link classes that use
-  ! auxiliary data need over ride this method (and set needaux).
-  ! ----------------------------------------------------------------
-  FUNCTION link_readaux(this, linkaux) RESULT(ierr)
-
-    IMPLICIT NONE
-    INTEGER :: ierr
-    CLASS (link_t), INTENT(INOUT) :: this
-    TYPE (json_value), POINTER, INTENT(IN) :: linkaux
-    LOGICAL :: found
-    CHARACTER (LEN=64) :: msg
-
-    ierr = 0;
-    IF (ASSOCIATED(linkaux)) THEN
-       WRITE(msg, *) "link ", this%id, ": error: cannot handle auxiliary data"
-       CALL error_message(msg, fatal=.FALSE.)
-       ierr = 1
-    END IF
-  END FUNCTION link_readaux
 
   ! ----------------------------------------------------------------
   !  FUNCTION link_points

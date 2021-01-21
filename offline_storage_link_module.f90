@@ -12,7 +12,7 @@ MODULE offline_storage_link_module
   USE bc_module
   USE nonfluvial_link_module
   USE storage_factory_module
-  USE compartment_transport_module
+  USE bucket_module
 
   IMPLICIT NONE
 
@@ -24,17 +24,18 @@ MODULE offline_storage_link_module
   ! ----------------------------------------------------------------
   TYPE, PUBLIC, EXTENDS(internal_bc_link_t) :: offline_storage_link
      ! The actual storage bucket
-     TYPE (storage_ptr) :: storage
+     TYPE (bucket_t) :: bstor
      DOUBLE PRECISION :: yconnect
-     CLASS (compartment_model), POINTER :: smodel
    CONTAINS
      PROCEDURE :: construct => offline_storage_link_construct
      PROCEDURE :: coeff => offline_storage_link_coeff
-     PROCEDURE :: readaux => offline_storage_link_readaux
+     PROCEDURE :: initialize => offline_storage_link_initialize
      PROCEDURE :: pre_transport => offline_storage_pre_transport
      PROCEDURE :: trans_interp => offline_storage_trans_interp
      PROCEDURE :: transport => offline_storage_transport
+     PROCEDURE :: read_restart => offline_storage_read_restart
      PROCEDURE :: read_trans_restart => offline_storage_read_trans_restart
+     PROCEDURE :: write_restart => offline_storage_write_restart
      PROCEDURE :: write_trans_restart => offline_storage_write_trans_restart
      PROCEDURE :: destroy => offline_storage_link_destroy
   END type offline_storage_link
@@ -51,10 +52,80 @@ CONTAINS
 
     CALL this%internal_bc_link_t%construct()
     this%needaux = .TRUE.
-
-    ALLOCATE(this%smodel)
-
   END SUBROUTINE offline_storage_link_construct
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION offline_storage_link_initialize
+  ! ----------------------------------------------------------------
+  FUNCTION offline_storage_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
+
+    IMPLICIT NONE
+    INTEGER :: ierr
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    CLASS (link_input_data), INTENT(IN) :: ldata
+    CLASS (bc_manager_t), INTENT(IN) :: bcman
+    CLASS (scalar_manager), INTENT(IN) :: sclrman
+    CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
+
+    TYPE (json_core) :: json
+    TYPE (storage_factory) :: factory
+    LOGICAL :: found
+    TYPE (json_value), POINTER :: sinfo
+    DOUBLE PRECISION :: theelev
+    TYPE (storage_ptr) :: astor
+    CHARACTER (LEN=256) :: msg, fld
+    
+    ierr = 0
+
+    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
+
+    IF (.NOT. ASSOCIATED(auxdata)) THEN
+       WRITE(msg, *) 'link ', this%id, ': offline storage link requires auxiliary data'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+       RETURN
+    END IF
+
+    CALL json%initialize()
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': cannot initialize json'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+       RETURN
+    END IF
+
+    fld = "Storage"
+    CALL json%get(auxdata, fld, sinfo, found)
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': JSON error looking for ', fld
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    ELSE IF (.NOT. found) THEN
+       WRITE(msg, *) 'link ', this%id, ': offline storage required value "', fld, '" not found'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    END IF
+
+    fld = "InletElevation"
+    theelev = -9999.0
+    CALL json%get(auxdata, fld, theelev, found)
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': JSON error looking for  "', fld, '" not found'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    END IF
+
+    IF (ierr .EQ. 0) THEN
+       astor = factory%generate(sinfo)
+       CALL this%bstor%construct(astor%p, sclrman%nspecies)
+       this%yconnect = theelev
+    END IF
+
+    CALL json%destroy()
+
+    
+  END FUNCTION offline_storage_link_initialize
 
 
   ! ----------------------------------------------------------------
@@ -71,7 +142,7 @@ CONTAINS
     DOUBLE PRECISION :: dvdy
 
     IF (pt2%hnow%y .GT. this%yconnect) THEN
-       dvdy = this%storage%p%dvdy(pt2%hnow%y)
+       dvdy = this%bstor%storage%dvdy(pt2%hnow%y)
     ELSE
        dvdy = 0.0
     END IF
@@ -92,70 +163,6 @@ CONTAINS
 
 
   ! ----------------------------------------------------------------
-  !  FUNCTION offline_storage_link_readaux
-  ! ----------------------------------------------------------------
-  FUNCTION offline_storage_link_readaux(this, linkaux) RESULT(ierr)
-
-    IMPLICIT NONE
-    INTEGER :: ierr
-    CLASS (offline_storage_link), INTENT(INOUT) :: this
-    TYPE (json_value), POINTER, INTENT(IN) :: linkaux
-    TYPE (json_core) :: json
-    TYPE (storage_factory) :: factory
-    LOGICAL :: found
-    CHARACTER (LEN=256) :: msg, fld
-
-    TYPE (json_value), POINTER :: sinfo
-    DOUBLE PRECISION :: theelev
-
-    ierr = 0
-
-    IF (.NOT. ASSOCIATED(linkaux)) THEN
-       WRITE(msg, *) 'link ', this%id, ': offline storage link requires auxiliary data'
-       CALL error_message(msg, fatal=.FALSE.)
-       ierr = ierr + 1
-       RETURN
-    END IF
-
-    CALL json%initialize()
-    IF (json%failed()) THEN
-       WRITE(msg, *) 'link ', this%id, ': cannot initialize json'
-       CALL error_message(msg, fatal=.FALSE.)
-       ierr = ierr + 1
-       RETURN
-    END IF
-
-    fld = "Storage"
-    CALL json%get(linkaux, fld, sinfo, found)
-    IF (json%failed()) THEN
-       WRITE(msg, *) 'link ', this%id, ': JSON error looking for ', fld
-       CALL error_message(msg, fatal=.FALSE.)
-       ierr = ierr + 1
-    ELSE IF (.NOT. found) THEN
-       WRITE(msg, *) 'link ', this%id, ': offline storage required value "', fld, '" not found'
-       CALL error_message(msg, fatal=.FALSE.)
-       ierr = ierr + 1
-    END IF
-
-    fld = "InletElevation"
-    theelev = -9999.0
-    CALL json%get(linkaux, fld, theelev, found)
-    IF (json%failed()) THEN
-       WRITE(msg, *) 'link ', this%id, ': JSON error looking for  "', fld, '" not found'
-       CALL error_message(msg, fatal=.FALSE.)
-       ierr = ierr + 1
-    END IF
-
-    IF (ierr .EQ. 0) THEN
-       this%storage = factory%generate(sinfo)
-       this%yconnect = theelev
-    END IF
-
-    CALL json%destroy()
-    
-  END FUNCTION offline_storage_link_readaux
-
-  ! ----------------------------------------------------------------
   ! SUBROUTINE offline_storage_pre_transport
   ! ----------------------------------------------------------------
   SUBROUTINE offline_storage_pre_transport(this)
@@ -163,47 +170,9 @@ CONTAINS
     IMPLICIT NONE
     CLASS (offline_storage_link), INTENT(INOUT) :: this
 
-    DOUBLE PRECISION :: qup, qdn, qin
-    DOUBLE PRECISION :: inflow, inflow_old
-    DOUBLE PRECISION :: outflow, outflow_old
-    DOUBLE PRECISION :: lateral_inflow, lateral_inflow_old
-    DOUBLE PRECISION :: storage, storage_old
-
     CALL this%internal_bc_link_t%pre_transport()
 
-    storage = this%storage%p%volume(this%pt(1)%hnow%y)
-    storage_old = this%storage%p%volume(this%pt(1)%hold%y)
-
-    qup = this%pt(1)%hnow%q
-    qdn = this%pt(this%points())%hnow%q
-    qin = qup - qdn
-
-    IF (qin .LT. 0.0) THEN
-       inflow = ABS(qin)
-       outflow = 0.0
-    ELSE
-       outflow = qin
-       inflow = ABS(qin)
-    ENDIF
-    
-    qup = this%pt(1)%hold%q
-    qdn = this%pt(this%points())%hold%q
-    qin = qup - qdn
-
-    IF (qin .LT. 0.0) THEN
-       inflow = ABS(qin)
-       outflow = 0.0
-    ELSE
-       outflow = qin
-       inflow = ABS(qin)
-    ENDIF
-
-    lateral_inflow = 0.0
-    lateral_inflow_old = 0.0
-
-    CALL this%smodel%pre_transport(inflow, inflow_old, &
-         &outflow, outflow_old, lateral_inflow, lateral_inflow_old, &
-         &storage, storage_old)
+    CALL this%bstor%pre_transport()
 
   END SUBROUTINE offline_storage_pre_transport
 
@@ -216,7 +185,24 @@ CONTAINS
     CLASS (offline_storage_link), INTENT(INOUT) :: this
     DOUBLE PRECISION, INTENT(IN) :: tnow, htime0, htime1
 
+    CALL this%bstor%trans_interp(tnow, htime0, htime1)
+
   END SUBROUTINE offline_storage_trans_interp
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_read_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_read_restart(this, iunit)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: iunit
+
+    CALL this%internal_bc_link_t%read_restart(iunit)
+    CALL this%bstor%read_restart(iunit)
+
+  END SUBROUTINE offline_storage_read_restart
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE offline_storage_read_trans_restart
@@ -229,9 +215,24 @@ CONTAINS
     INTEGER, INTENT(IN) :: nspecies
 
     CALL this%internal_bc_link_t%read_trans_restart(iunit, nspecies)
-    CALL this%smodel%read_restart(iunit, nspecies)
+    CALL this%bstor%read_trans_restart(iunit, nspecies)
 
   END SUBROUTINE offline_storage_read_trans_restart
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_write_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_write_restart(this, iunit)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(IN) :: this
+    INTEGER, INTENT(IN) :: iunit
+
+    CALL this%internal_bc_link_t%write_restart(iunit)
+    CALL this%bstor%write_restart(iunit)
+
+  END SUBROUTINE offline_storage_write_restart
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE offline_storage_write_trans_restart
@@ -243,7 +244,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: iunit, nspecies
 
     CALL this%internal_bc_link_t%write_trans_restart(iunit, nspecies)
-    CALL this%smodel%write_restart(iunit, nspecies)
+    CALL this%bstor%write_trans_restart(iunit, nspecies)
 
 
   END SUBROUTINE offline_storage_write_trans_restart
@@ -270,10 +271,8 @@ CONTAINS
     IMPLICIT NONE
     CLASS (offline_storage_link), INTENT(INOUT) :: this
 
-    DEALLOCATE(this%storage%p)
-    NULLIFY(this%storage%p)
+    CALL this%bstor%destroy()
     CALL this%internal_bc_link_t%destroy()
-    DEALLOCATE(this%smodel)
 
   END SUBROUTINE offline_storage_link_destroy
 

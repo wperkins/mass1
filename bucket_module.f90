@@ -260,7 +260,7 @@ CONTAINS
   SUBROUTINE bucket_write_restart(this, iunit)
 
     IMPLICIT NONE
-    CLASS (bucket_t), INTENT(INOUT) :: this
+    CLASS (bucket_t), INTENT(IN) :: this
     INTEGER, INTENT(IN) :: iunit
     INTEGER :: iostat
 
@@ -285,7 +285,7 @@ CONTAINS
   SUBROUTINE bucket_write_trans_restart(this, iunit, nspecies)
 
     IMPLICIT NONE
-    CLASS (bucket_t), INTENT(INOUT) :: this
+    CLASS (bucket_t), INTENT(IN) :: this
     INTEGER, INTENT(IN) :: iunit, nspecies
 
     CALL this%cmodel%write_restart(iunit, nspecies)

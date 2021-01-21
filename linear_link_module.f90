@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2020-12-10 10:01:33 d3g096
+! Last Change: 2021-01-21 12:59:52 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -23,6 +23,7 @@ MODULE linear_link_module
   USE mass1_config
   USE general_vars, ONLY: depth_threshold, depth_minimum
   USE flow_coeff
+  USE json_module
 
   IMPLICIT NONE
 
@@ -72,7 +73,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION linear_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION linear_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION linear_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -81,7 +82,8 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
-
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
+    
     INTEGER :: i
     CHARACTER (LEN=1024) :: msg
     ierr = 0

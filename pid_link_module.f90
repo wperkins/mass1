@@ -9,7 +9,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created January 30, 2018 by William A. Perkins
-! Last Change: 2019-03-14 11:50:34 d3g096
+! Last Change: 2021-01-21 13:07:26 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE pid_link_module
@@ -23,6 +23,8 @@ MODULE pid_link_module
   USE linear_link_module
   USE flow_coeff
   USE bc_module
+  USE json_module
+
 
   IMPLICIT NONE
 
@@ -112,7 +114,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION pid_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION pid_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION pid_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
 
@@ -122,6 +124,7 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
 
     CHARACTER (LEN=1024) :: msg
 
@@ -131,7 +134,7 @@ CONTAINS
     NULLIFY(this%lagged)
     this%lagready = .FALSE.
 
-    ierr = this%linear_link_t%initialize(ldata, bcman, sclrman, metman)
+    ierr = this%linear_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
 
     IF (.NOT. ASSOCIATED(this%usbc)) THEN 
        WRITE(msg, *) 'link ', this%id, &
@@ -144,7 +147,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION pid_flow_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION pid_flow_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION pid_flow_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
 
@@ -154,8 +157,9 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
 
-    ierr = this%pid_link%initialize(ldata, bcman, sclrman, metman)
+    ierr = this%pid_link%initialize(ldata, bcman, sclrman, metman, auxdata)
     this%followflow = .TRUE.
 
   END FUNCTION pid_flow_link_initialize

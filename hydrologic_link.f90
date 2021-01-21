@@ -13,6 +13,7 @@ MODULE hydrologic_link_module
   USE mass1_config
   USE linear_link_module
   USE compartment_transport_module
+  USE json_module
 
   IMPLICIT NONE
 
@@ -94,7 +95,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION hydrologic_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION hydrologic_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION hydrologic_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -105,6 +106,7 @@ CONTAINS
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
     CHARACTER (LEN=1024) :: msg
     CLASS (link_input_data), ALLOCATABLE :: my_ldata
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
 
     ! a hydrologic link can only have 2 points: inflow and outflow
 
@@ -118,7 +120,7 @@ CONTAINS
        my_ldata%npt = hydrologic_link_maxpt
     END IF
 
-    ierr = this%linear_link_t%initialize(my_ldata, bcman, sclrman, metman)
+    ierr = this%linear_link_t%initialize(my_ldata, bcman, sclrman, metman, auxdata)
     this%tsubstep = .FALSE.   ! transport sub-stepping is not required (but can be done)
 
     IF (my_ldata%lbcid .GT. 0) THEN

@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2020-12-10 09:21:13 d3g096
+! Last Change: 2021-01-21 13:02:38 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -20,7 +20,7 @@ MODULE nonfluvial_link_module
   USE linear_link_module
   USE flow_coeff
   USE bc_module
-  USE storage_factory_module
+  USE json_module
 
   IMPLICIT NONE
 
@@ -175,7 +175,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION hydro_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION hydro_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION hydro_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -184,6 +184,8 @@ CONTAINS
     CLASS (bc_manager_t), INTENT(IN) :: bcman
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
+
 
     CHARACTER (LEN=1024) :: msg
 
@@ -202,7 +204,7 @@ CONTAINS
        ierr = ierr + 1
     END IF
 
-    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman)
+    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
   END FUNCTION hydro_link_initialize
 
 
@@ -281,7 +283,7 @@ CONTAINS
   ! ----------------------------------------------------------------
   !  FUNCTION trib_inflow_link_initialize
   ! ----------------------------------------------------------------
-  FUNCTION trib_inflow_link_initialize(this, ldata, bcman, sclrman, metman) RESULT(ierr)
+  FUNCTION trib_inflow_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
 
     IMPLICIT NONE
     INTEGER :: ierr
@@ -291,6 +293,7 @@ CONTAINS
     CLASS (scalar_manager), INTENT(IN) :: sclrman
     CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
     CHARACTER (LEN=1024) :: msg
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
 
     ierr = 0
 
@@ -306,7 +309,7 @@ CONTAINS
        CALL error_message(msg)
        ierr = ierr + 1
     END IF
-    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman)
+    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
 
   END FUNCTION trib_inflow_link_initialize
 
