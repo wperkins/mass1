@@ -76,6 +76,7 @@ CONTAINS
        ALLOCATE(this%cmodel)
        CALL this%cmodel%construct(nspecies)
        NULLIFY(this%cmodel%avgpt%xsection%p)
+       this%cmodel%avgpt%thalweg = this%storage%bottom()
     ELSE
        NULLIFY(this%cmodel)
        
@@ -122,6 +123,34 @@ CONTAINS
     END ASSOCIATE
 
   END SUBROUTINE bucket_hydro_balance
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE bucket_stage_balance
+  ! ----------------------------------------------------------------
+  SUBROUTINE bucket_stage_balance(this, ynow, deltat)
+
+    IMPLICIT NONE
+    CLASS (bucket_t), INTENT(INOUT) :: this
+    DOUBLE PRECISION, INTENT(IN) :: ynow, deltat
+
+    DOUBLE PRECISION :: q
+
+    ASSOCIATE (s => this%state)
+      CALL s%step()
+      s%y_now = ynow
+      s%volume_now = this%storage%volume(s%y_now)
+      q = (s%volume_now - s%volume_old)/deltat
+      IF (q .GT. 0.0) THEN
+         s%inflow_now = q
+         s%outflow_now = 0.0
+      ELSE
+         s%inflow_now = 0.0
+         s%outflow_now = -q
+      END IF
+    END ASSOCIATE
+
+  END SUBROUTINE bucket_stage_balance
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE bucket_pre_transport
