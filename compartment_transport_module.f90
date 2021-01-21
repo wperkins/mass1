@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created December 15, 2020 by  William Perkins 
-! Last Change: 2021-01-20 09:09:06 d3g096
+! Last Change: 2021-01-21 08:26:52 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -17,6 +17,7 @@ MODULE compartment_transport_module
 
   USE utility
   USE point_module
+  USE cross_section, ONLY: xsection_prop_interp
   USE transport_module
 
   IMPLICIT NONE
@@ -147,8 +148,16 @@ CONTAINS
     CALL hydro_interp(tnow, htime0, htime1, &
          &this%inpt%hold, this%inpt%hnow, this%inpt%trans%hnow)
 
-    ! Need cross section info here
-    CALL this%avgpt%transport_interp(tnow, htime0, htime1)
+    IF (ASSOCIATED(this%avgpt%xsection%p)) THEN
+       ! Need a cross section here
+       CALL this%avgpt%transport_interp(tnow, htime0, htime1)
+    ELSE
+       ! Need reasonable section properties here
+       this%avgpt%trans%xspropold = this%avgpt%trans%xsprop
+       CALL xsection_prop_interp(tnow, htime0, htime1, &
+            &this%avgpt%xspropold, this%avgpt%xsprop, &
+            &this%avgpt%trans%xsprop)
+    END IF
 
     ! Interpolate storage
     this%my_storage_old = this%my_storage

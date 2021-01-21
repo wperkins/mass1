@@ -25,7 +25,6 @@ MODULE bucket_module
   ! ----------------------------------------------------------------
   TYPE, PUBLIC :: bucket_t
      TYPE (bucket_state) :: state
-     CLASS (point_t), POINTER :: pt
      CLASS (storage_t), POINTER :: storage
      CLASS (compartment_model), POINTER :: cmodel
    CONTAINS
@@ -70,17 +69,16 @@ CONTAINS
     CLASS (storage_t), POINTER, INTENT(IN) :: storage
     INTEGER, INTENT(IN) :: nspecies
 
-    ALLOCATE(this%pt)
-    NULLIFY(this%pt%xsection%p) ! no cross section
-    
     ! NOTE: this pointer is now managed here!
     this%storage => storage
 
     IF (nspecies .GT. 0) THEN
        ALLOCATE(this%cmodel)
        CALL this%cmodel%construct(nspecies)
+       NULLIFY(this%cmodel%avgpt%xsection%p)
     ELSE
        NULLIFY(this%cmodel)
+       
     END IF
   END SUBROUTINE bucket_construct
 
@@ -114,12 +112,14 @@ CONTAINS
     CLASS (bucket_t), INTENT(INOUT) :: this
     DOUBLE PRECISION, INTENT(IN) :: inflow, outflow, deltat
 
-    CALL this%state%step()
-    this%state%inflow_now = inflow
-    this%state%outflow_now = outflow
+    ASSOCIATE (s => this%state)
+      CALL s%step()
+      s%inflow_now = inflow
+      s%outflow_now = outflow
 
-    this%state%volume_now = this%state%volume_old + (inflow - outflow)*deltat
-    this%state%y_now = this%storage%stage(this%state%volume_now)
+      s%volume_now = s%volume_old + (inflow - outflow)*deltat
+      s%y_now = this%storage%stage(s%volume_now)
+    END ASSOCIATE
 
   END SUBROUTINE bucket_hydro_balance
 
@@ -131,7 +131,17 @@ CONTAINS
     IMPLICIT NONE
     CLASS (bucket_t), INTENT(INOUT) :: this
 
-    ASSOCIATE (s => this%state)
+    ASSOCIATE (s => this%state, pt => this%cmodel%avgpt)
+      ! Try come up with some reasonable cross section properties for
+      ! the compartement. We need depth, width, and area that will
+      ! produce the correct temperature and tdg source terms
+      pt%xsprop%depth = this%storage%depth(s%y_now)
+      pt%xsprop%topwidth = sqrt(this%storage%area(s%y_now))
+      pt%xsprop%area = pt%xsprop%depth*pt%xsprop%topwidth
+      pt%xspropold%depth = this%storage%depth(s%y_old)
+      pt%xspropold%topwidth = sqrt(this%storage%area(s%y_old))
+      pt%xspropold%area = pt%xsprop%depth*pt%xsprop%topwidth
+      
       CALL this%cmodel%pre_transport(&
            &s%inflow_now, s%inflow_old, &
            &s%outflow_now, s%outflow_old, &
@@ -260,7 +270,6 @@ CONTAINS
 
     IMPLICIT NONE
     CLASS (bucket_t), INTENT(INOUT) :: this
-    IF (ASSOCIATED(this%pt)) DEALLOCATE(this%pt)
     IF (ASSOCIATED(this%storage)) THEN
        CALL this%storage%destroy()
        DEALLOCATE(this%storage)

@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created April  3, 2020 by William A. Perkins
-! Last Change: 2021-01-20 09:06:41 d3g096
+! Last Change: 2021-01-21 08:50:49 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE storage_module
@@ -46,6 +46,9 @@ MODULE storage_module
      ! compute elevation from a volume
      PROCEDURE (v_proc), DEFERRED :: stage
 
+     ! get bottom elevation
+     PROCEDURE (bottom_proc), DEFERRED :: bottom
+
      ! whatever it takes to get rid of an instance
      PROCEDURE :: destroy => storage_destroy
      
@@ -66,6 +69,12 @@ MODULE storage_module
        CLASS (storage_t), INTENT(IN) :: this
        DOUBLE PRECISION, INTENT(IN) :: v
      END FUNCTION v_proc
+     FUNCTION bottom_proc(this) 
+       IMPORT :: storage_t
+       IMPLICIT NONE
+       DOUBLE PRECISION :: bottom_proc
+       CLASS (storage_t), INTENT(IN) :: this
+     END FUNCTION bottom_proc
   END INTERFACE
 
   ! ----------------------------------------------------------------
@@ -81,6 +90,7 @@ MODULE storage_module
      PROCEDURE :: depth => simple_storage_depth
      PROCEDURE :: dvdy => simple_storage_dvdy
      PROCEDURE :: stage => simple_storage_stage
+     PROCEDURE :: bottom => simple_storage_bottom
   END type simple_storage
 
   INTERFACE simple_storage
@@ -209,6 +219,20 @@ CONTAINS
     y = this%ybottom + d
     
   END FUNCTION simple_storage_stage
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION simple_storage_bottom
+  ! ----------------------------------------------------------------
+  FUNCTION simple_storage_bottom(this) RESULT(b)
+
+    IMPLICIT NONE
+    DOUBLE PRECISION :: b
+    CLASS (simple_storage), INTENT(IN) :: this
+    
+    b = this%ybottom
+
+  END FUNCTION simple_storage_bottom
+
 
 END MODULE storage_module
 
