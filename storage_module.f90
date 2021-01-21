@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created April  3, 2020 by William A. Perkins
-! Last Change: 2021-01-14 09:42:11 d3g096
+! Last Change: 2021-01-20 09:06:41 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE storage_module
@@ -24,38 +24,48 @@ MODULE storage_module
   ! ----------------------------------------------------------------
   ! ABSTRACT TYPE storage_t
   !
-  ! The basis for a "storage" or bucket.  This has no state (stage),
+  ! The basis for a "storage", a level pool. This has no state (WSE),
   ! which is expected to be managed by the client. This only defines
   ! the relationship between stage, surface, area, volume, etc.
-  !
-  ! Note that there is not state here, only a descriptors of the
-  ! volume and how they changes with surface elevation.
   ! ----------------------------------------------------------------
-  
   TYPE, PUBLIC, ABSTRACT :: storage_t
    CONTAINS
      ! surface area as a function of stage
-     PROCEDURE (area_proc), DEFERRED :: area
+     PROCEDURE (y_proc), DEFERRED :: area
 
      ! total volume as a function of stage
-     PROCEDURE (area_proc), DEFERRED :: volume
+     PROCEDURE (y_proc), DEFERRED :: volume
 
      ! average deptha as a function of stage
-     PROCEDURE (area_proc), DEFERRED :: depth
+     PROCEDURE (y_proc), DEFERRED :: depth
 
      ! rate of change in volume per change in stage, also a function
      ! of stage
-     PROCEDURE (area_proc), DEFERRED :: dvdy
+     PROCEDURE (y_proc), DEFERRED :: dvdy
+
+     ! compute elevation from a volume
+     PROCEDURE (v_proc), DEFERRED :: stage
+
+     ! whatever it takes to get rid of an instance
+     PROCEDURE :: destroy => storage_destroy
+     
   END type storage_t
 
   ABSTRACT INTERFACE
-     FUNCTION area_proc(this, y)
+     FUNCTION y_proc(this, y)
        IMPORT :: storage_t
        IMPLICIT NONE
-       DOUBLE PRECISION :: area_proc
+       DOUBLE PRECISION :: y_proc
        CLASS (storage_t), INTENT(IN) :: this
        DOUBLE PRECISION, INTENT(IN) :: y
-     END FUNCTION area_proc
+     END FUNCTION y_proc
+     FUNCTION v_proc(this, v)
+       IMPORT :: storage_t
+       IMPLICIT NONE
+       DOUBLE PRECISION :: v_proc
+       CLASS (storage_t), INTENT(IN) :: this
+       DOUBLE PRECISION, INTENT(IN) :: v
+     END FUNCTION v_proc
   END INTERFACE
 
   ! ----------------------------------------------------------------
@@ -70,6 +80,7 @@ MODULE storage_module
      PROCEDURE :: volume => simple_storage_volume
      PROCEDURE :: depth => simple_storage_depth
      PROCEDURE :: dvdy => simple_storage_dvdy
+     PROCEDURE :: stage => simple_storage_stage
   END type simple_storage
 
   INTERFACE simple_storage
@@ -86,6 +97,20 @@ MODULE storage_module
 CONTAINS
 
   ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_destroy
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_destroy(this)
+
+    IMPLICIT NONE
+    CLASS (storage_t), INTENT(INOUT) :: this
+
+    ! do nothing
+    
+
+  END SUBROUTINE storage_destroy
+
+
+  ! ----------------------------------------------------------------
   !  FUNCTION new_simple_storage
   ! ----------------------------------------------------------------
   FUNCTION new_simple_storage(area, ybottom) RESULT(s)
@@ -93,8 +118,13 @@ CONTAINS
     IMPLICIT NONE
     TYPE(simple_storage) :: s
     DOUBLE PRECISION, INTENT(IN) :: area, ybottom
+
+    IF (area .LE. 0.0) THEN
+       CALL error_message("simple storage: area must be positive", fatal=.TRUE.)
+    END IF
     s%ybottom = ybottom
     s%the_area = area
+
   END FUNCTION new_simple_storage
 
   ! ----------------------------------------------------------------
@@ -162,5 +192,23 @@ CONTAINS
     END IF
     
   END FUNCTION simple_storage_dvdy
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION simple_storage_stage
+  ! ----------------------------------------------------------------
+  FUNCTION simple_storage_stage(this, v) RESULT(y)
+
+    IMPLICIT NONE
+    DOUBLE PRECISION :: y
+    CLASS (simple_storage), INTENT(IN) :: this
+    DOUBLE PRECISION, INTENT(IN) :: v
+
+    DOUBLE PRECISION :: d
+
+    d = v/this%the_area
+    y = this%ybottom + d
+    
+  END FUNCTION simple_storage_stage
+
 END MODULE storage_module
 

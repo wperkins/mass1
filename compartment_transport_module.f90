@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created December 15, 2020 by  William Perkins 
-! Last Change: 2021-01-19 07:58:29 d3g096
+! Last Change: 2021-01-20 09:09:06 d3g096
 ! ----------------------------------------------------------------
 
 ! ----------------------------------------------------------------
@@ -45,6 +45,7 @@ MODULE compartment_transport_module
      PROCEDURE :: conc => compartment_model_conc
      PROCEDURE :: read_restart => compartment_read_restart
      PROCEDURE :: write_restart => compartment_write_restart
+     PROCEDURE :: destroy => compartment_model_destroy
   END type compartment_model
   
   DOUBLE PRECISION, PRIVATE, PARAMETER :: compartment_min_storage = 1.0D-05
@@ -295,6 +296,21 @@ CONTAINS
     END IF
 
   END SUBROUTINE compartment_write_restart
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE compartment_model_destroy
+  ! ----------------------------------------------------------------
+  SUBROUTINE compartment_model_destroy(this)
+
+    IMPLICIT NONE
+    CLASS (compartment_model) :: this
+
+    DEALLOCATE(this%inpt%trans%cnow,this%inpt%trans%cold)
+    DEALLOCATE(this%outpt%trans%cnow,this%outpt%trans%cold)
+    DEALLOCATE(this%avgpt%trans%cnow,this%avgpt%trans%cold)
+
+  END SUBROUTINE compartment_model_destroy
+
 
 
 END MODULE compartment_transport_module
