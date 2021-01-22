@@ -1,0 +1,10 @@
+{
+    "3" : {
+        "InletElevation" : 0.0,
+        "Storage" : {
+            "type" : "simple",
+            "Area" : 436000.0,
+            "BottomElevation" : 0.0,
+        }
+    }
+}

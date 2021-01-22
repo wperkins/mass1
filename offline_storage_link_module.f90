@@ -30,6 +30,7 @@ MODULE offline_storage_link_module
      PROCEDURE :: construct => offline_storage_link_construct
      PROCEDURE :: coeff => offline_storage_link_coeff
      PROCEDURE :: initialize => offline_storage_link_initialize
+     PROCEDURE :: backward_sweep => offline_storage_link_backward
      PROCEDURE :: pre_transport => offline_storage_pre_transport
      PROCEDURE :: trans_interp => offline_storage_trans_interp
      PROCEDURE :: transport => offline_storage_transport
@@ -161,6 +162,23 @@ CONTAINS
     
   END SUBROUTINE offline_storage_link_coeff
 
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE offline_storage_link_backward
+  ! ----------------------------------------------------------------
+  SUBROUTINE offline_storage_link_backward(this, deltat, dsbc_type)
+
+    IMPLICIT NONE
+    CLASS (offline_storage_link), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: dsbc_type
+    DOUBLE PRECISION, INTENT(IN) :: deltat
+
+    CALL this%internal_bc_link_t%backward_sweep(deltat, dsbc_type)
+    CALL this%bstor%hydro_by_stage(this%pt(this%npoints)%hnow%y, deltat)
+    
+
+  END SUBROUTINE offline_storage_link_backward
+
+
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE offline_storage_pre_transport
@@ -171,7 +189,6 @@ CONTAINS
     CLASS (offline_storage_link), INTENT(INOUT) :: this
 
     CALL this%internal_bc_link_t%pre_transport()
-
     CALL this%bstor%pre_transport()
 
   END SUBROUTINE offline_storage_pre_transport
@@ -185,6 +202,7 @@ CONTAINS
     CLASS (offline_storage_link), INTENT(INOUT) :: this
     DOUBLE PRECISION, INTENT(IN) :: tnow, htime0, htime1
 
+    CALL this%internal_bc_link_t%trans_interp(tnow, htime0, htime1)
     CALL this%bstor%trans_interp(tnow, htime0, htime1)
 
   END SUBROUTINE offline_storage_trans_interp
@@ -260,7 +278,48 @@ CONTAINS
     INTEGER, INTENT(IN) :: ispec, tstep
     DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
 
+    DOUBLE PRECISION :: qin, cin, cout, qs, cs
 
+    ! Initially assume no outflow from the storage
+    CALL this%internal_bc_link_t%transport(ispec, tstep, tdeltat, hdeltat)
+
+    ! This seems overly complicated, but all flow directions need to
+    ! be considered to figure the storage inflow concentration.
+    
+    qin = 0                     ! "in" to the link
+    cin = 0
+    ASSOCIATE (upt => this%pt(1)%trans, dpt => this%pt(this%npoints)%trans)
+      IF (upt%hnow%q .GT. 0.0) THEN
+         qin = qin + upt%hnow%q
+         cin = cin + upt%cnow(ispec)*upt%hnow%q
+      END IF
+      IF (dpt%hnow%q .LT. 0.0) THEN
+         qin = qin + dpt%hnow%q
+         cin = cin + dpt%cnow(ispec)*dpt%hnow%q
+      END IF
+
+      IF (qin .GT. 0.0) THEN
+         cin = cin/qin
+      ELSE
+         cin = upt%cnow(ispec)
+      END IF
+
+      CALL this%bstor%transport(ispec, tstep, tdeltat, cin, this%species(ispec))
+
+      qs = this%bstor%outflow(.TRUE.)
+      IF (qs .GT. 0.0) THEN
+         cs = this%bstor%outflow_conc(ispec)
+         cin = cin*qin + cs*qs
+         cout = cin/(qin + qs)
+         IF (upt%hnow%q .LT. 0.0) THEN
+            upt%cnow(ispec) = cout
+         END IF
+         IF (dpt%hnow%q .GT. 0.0) THEN
+            dpt%cnow(ispec) = cout
+         END IF
+      END IF
+    END ASSOCIATE
+    
   END SUBROUTINE offline_storage_transport
 
   ! ----------------------------------------------------------------

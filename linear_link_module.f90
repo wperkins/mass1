@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created June 28, 2017 by William A. Perkins
-! Last Change: 2021-01-21 12:59:52 d3g096
+! Last Change: 2021-01-22 07:29:23 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE linear_link_module
@@ -827,11 +827,13 @@ CONTAINS
   ! ----------------------------------------------------------------
   ! SUBROUTINE linear_link_backward
   ! ----------------------------------------------------------------
-  SUBROUTINE linear_link_backward(this, dsbc_type)
+  SUBROUTINE linear_link_backward(this, deltat, dsbc_type)
 
     IMPLICIT NONE
     CLASS (linear_link_t), INTENT(INOUT) :: this
     INTEGER, INTENT(IN) :: dsbc_type
+    DOUBLE PRECISION, INTENT(IN) :: deltat
+
     DOUBLE PRECISION :: bcval, dy, dq
     INTEGER :: point
     DOUBLE PRECISION :: bslope, qtmp, dqdy

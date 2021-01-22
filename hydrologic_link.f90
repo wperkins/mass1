@@ -363,10 +363,11 @@ CONTAINS
   ! ----------------------------------------------------------------
   ! SUBROUTINE hydrologic_link_backward
   ! ----------------------------------------------------------------
-  SUBROUTINE hydrologic_link_backward(this, dsbc_type)
+  SUBROUTINE hydrologic_link_backward(this, deltat, dsbc_type)
 
     IMPLICIT NONE
     CLASS (hydrologic_link), INTENT(INOUT) :: this
+    DOUBLE PRECISION, INTENT(IN) :: deltat
     INTEGER, INTENT(IN) :: dsbc_type
     INTEGER :: i
     DOUBLE PRECISION :: q, depth

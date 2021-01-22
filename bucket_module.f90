@@ -31,16 +31,26 @@ MODULE bucket_module
      PROCEDURE :: construct => bucket_construct
      PROCEDURE :: set_initial => bucket_set_initial
      PROCEDURE :: hydro => bucket_hydro_balance
+     PROCEDURE :: hydro_by_stage => bucket_stage_balance
      PROCEDURE :: pre_transport => bucket_pre_transport
      PROCEDURE :: trans_interp => bucket_trans_interp
      PROCEDURE :: transport => bucket_transport
+     PROCEDURE :: outflow => bucket_outflow
+     PROCEDURE :: outflow_conc => bucket_outflow_conc
      PROCEDURE :: read_restart => bucket_read_restart
      PROCEDURE :: write_restart => bucket_write_restart
      PROCEDURE :: read_trans_restart => bucket_read_trans_restart
      PROCEDURE :: write_trans_restart => bucket_write_trans_restart
      PROCEDURE :: destroy => bucket_destroy
   END type bucket_t
-  
+
+  ! ----------------------------------------------------------------
+  ! TYPE bucket_ptr
+  ! ----------------------------------------------------------------
+  TYPE, PUBLIC :: bucket_ptr
+     CLASS (bucket_t), POINTER :: p
+  END type bucket_ptr
+
 CONTAINS
 
   ! ----------------------------------------------------------------
@@ -126,6 +136,9 @@ CONTAINS
 
   ! ----------------------------------------------------------------
   ! SUBROUTINE bucket_stage_balance
+  !
+  ! For offline storage. Compute the storage balance assuming the
+  ! current WSE.
   ! ----------------------------------------------------------------
   SUBROUTINE bucket_stage_balance(this, ynow, deltat)
 
@@ -165,6 +178,7 @@ CONTAINS
       ! the compartement. We need depth, width, and area that will
       ! produce the correct temperature and tdg source terms
       pt%xsprop%depth = this%storage%depth(s%y_now)
+      ! FIXME: sqrt?
       pt%xsprop%topwidth = sqrt(this%storage%area(s%y_now))
       pt%xsprop%area = pt%xsprop%depth*pt%xsprop%topwidth
       pt%xspropold%depth = this%storage%depth(s%y_old)
@@ -205,13 +219,46 @@ CONTAINS
     CLASS (bucket_t), INTENT(INOUT) :: this
     INTEGER, INTENT(IN) :: ispec, tstep
     DOUBLE PRECISION, INTENT(IN) :: tdeltat, cin
-    CLASS (link_scalar), INTENT(INOUT), POINTER :: scalar
+    CLASS (link_scalar), INTENT(INOUT) :: scalar
 
     CALL this%cmodel%transport(ispec, cin, cin, tstep, tdeltat, scalar)
 
   END SUBROUTINE bucket_transport
 
 
+  ! ----------------------------------------------------------------
+  !  FUNCTION bucket_outflow
+  ! ----------------------------------------------------------------
+  FUNCTION bucket_outflow(this, transport) RESULT(qout)
+
+    IMPLICIT NONE
+    DOUBLE PRECISION :: qout
+    CLASS (bucket_t), INTENT(INOUT) :: this
+    LOGICAL, INTENT(IN), OPTIONAL :: transport
+
+    qout = this%state%outflow_now
+    IF (PRESENT(transport)) THEN
+       IF (transport) THEN
+          qout = this%cmodel%outpt%trans%hnow%q
+       END IF
+    END IF
+
+  END FUNCTION bucket_outflow
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION bucket_outflow_conc
+  ! ----------------------------------------------------------------
+  FUNCTION bucket_outflow_conc(this, ispec) RESULT(cout)
+
+    IMPLICIT NONE
+    DOUBLE PRECISION :: cout
+    CLASS (bucket_t), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: ispec
+    
+    cout = this%cmodel%outpt%trans%cnow(ispec)
+    
+  END FUNCTION bucket_outflow_conc
+  
   ! ----------------------------------------------------------------
   ! SUBROUTINE bucket_read_restart
   ! ----------------------------------------------------------------
