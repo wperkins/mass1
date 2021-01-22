@@ -41,20 +41,24 @@ restrictions.
 
 ## Link Type
 
-| Type | Description 
-| :---: | :--- 
-| 1 | Normal fluvial link 
-| 2 | Imposed upstream discharge
-| 3 | Imposed  upstream stage
-| 12 | Discharge following PID 
-| 13 | Stage following PID 
-| 20 | Normal fluvial link with upstream TDG specified as saturation rather than concentration
-| 21 | Hydroelectric inflow link: like 1, but with generation and spill discharges specified in a [hydro BC](bc.md) file.  
-| 4 | Imposed Downstream stage 
-| 5 | Tributary inflow
-| 6 | Imposed hydroelectric dam discharge: like 2, but with generation and spill discharges specified in a [hydro BC](bc.md) file.
-| 8 | Offline storage 
-| 60 | Hydrologic routing link 
+The "Auxiliary" column indicates which link types require
+[auxiliary](auxiliary.md) information. 
+
+| Type | Description | Auxiliary |
+| :---: | :---  | :--- |
+| 1 | Normal fluvial link | |
+| 2 | Imposed upstream discharge | |
+| 3 | Imposed  upstream stage | |
+| 12 | Discharge following PID | |
+| 13 | Stage following PID | |
+| 20 | Normal fluvial link with upstream TDG specified as saturation rather than concentration | |
+| 21 | Hydroelectric inflow link: like 1, but with generation and spill discharges specified in a [hydro BC](bc.md) file.  | |
+| 4 | Imposed Downstream stage  | |
+| 5 | Tributary inflow | |
+| 6 | Imposed hydroelectric dam discharge: like 2, but with generation and spill discharges specified in a [hydro BC](bc.md) file. | |
+| 8 | Offline storage | yes |
+| 9 | Pumped storage | yes |
+| 60 | Hydrologic routing link | |
 
 ## Point Input Option
 

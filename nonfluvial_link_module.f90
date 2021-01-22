@@ -7,7 +7,7 @@
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! Created July 17, 2017 by William A. Perkins
-! Last Change: 2021-01-21 13:02:38 d3g096
+! Last Change: 2021-01-22 12:34:26 d3g096
 ! ----------------------------------------------------------------
 ! ----------------------------------------------------------------
 ! MODULE nonfluvial_link_module
@@ -21,6 +21,8 @@ MODULE nonfluvial_link_module
   USE flow_coeff
   USE bc_module
   USE json_module
+  USE storage_factory_module
+  USE bucket_module
 
   IMPLICIT NONE
 
@@ -87,6 +89,26 @@ MODULE nonfluvial_link_module
      PROCEDURE :: trans_interp => trib_inflow_link_trans_interp
      PROCEDURE :: transport => trib_inflow_link_transport
   END type trib_inflow_link
+
+  ! ----------------------------------------------------------------
+  ! TYPE storage_link_t
+  !
+  ! Links that need a "storage" 
+  ! ----------------------------------------------------------------
+  TYPE, PUBLIC, EXTENDS(internal_bc_link_t) :: storage_link_t
+     TYPE (bucket_t) :: bstor
+   CONTAINS
+     PROCEDURE :: construct => storage_link_construct
+     PROCEDURE :: initialize => storage_link_initialize
+     PROCEDURE :: pre_transport => storage_pre_transport
+     PROCEDURE :: trans_interp => storage_trans_interp
+     PROCEDURE :: transport => storage_transport
+     PROCEDURE :: read_restart => storage_read_restart
+     PROCEDURE :: read_trans_restart => storage_read_trans_restart
+     PROCEDURE :: write_restart => storage_write_restart
+     PROCEDURE :: write_trans_restart => storage_write_trans_restart
+     PROCEDURE :: destroy => storage_link_destroy
+  END type storage_link_t
 
   DOUBLE PRECISION, PARAMETER :: eps = 1.0D-09
 
@@ -422,5 +444,237 @@ CONTAINS
     this%pt(2)%trans%cnow(ispec) = cdn
   END SUBROUTINE trib_inflow_link_transport
 
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_link_construct
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_link_construct(this)
 
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+
+    CALL this%internal_bc_link_t%construct()
+    this%needaux = .TRUE.
+    
+  END SUBROUTINE storage_link_construct
+
+  ! ----------------------------------------------------------------
+  !  FUNCTION storage_link_initialize
+  ! ----------------------------------------------------------------
+  FUNCTION storage_link_initialize(this, ldata, bcman, sclrman, metman, auxdata) RESULT(ierr)
+
+    IMPLICIT NONE
+    INTEGER :: ierr
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+    CLASS (link_input_data), INTENT(IN) :: ldata
+    CLASS (bc_manager_t), INTENT(IN) :: bcman
+    CLASS (scalar_manager), INTENT(IN) :: sclrman
+    CLASS (met_zone_manager_t), INTENT(INOUT) :: metman
+    TYPE (json_value), POINTER, INTENT(IN) :: auxdata
+
+    TYPE (json_core) :: json
+    TYPE (storage_factory) :: factory
+    LOGICAL :: found
+    TYPE (json_value), POINTER :: sinfo
+    TYPE (storage_ptr) :: astor
+    CHARACTER (LEN=256) :: msg, fld
+    
+    ierr = 0
+
+    ierr = ierr + this%internal_bc_link_t%initialize(ldata, bcman, sclrman, metman, auxdata)
+
+    IF (.NOT. ASSOCIATED(auxdata)) THEN
+       WRITE(msg, *) 'link ', this%id, ': link w/ storage requires auxiliary data'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+       RETURN
+    END IF
+
+    CALL json%initialize()
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': cannot initialize json'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+       RETURN
+    END IF
+
+    fld = "Storage"
+    CALL json%get(auxdata, fld, sinfo, found)
+    IF (json%failed()) THEN
+       WRITE(msg, *) 'link ', this%id, ': JSON error looking for ', fld
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    ELSE IF (.NOT. found) THEN
+       WRITE(msg, *) 'link ', this%id, ': storage required value "', fld, '" not found'
+       CALL error_message(msg, fatal=.FALSE.)
+       ierr = ierr + 1
+    END IF
+
+    IF (ierr .EQ. 0) THEN
+       astor = factory%generate(sinfo)
+       CALL this%bstor%construct(astor%p, sclrman%nspecies)
+    END IF
+
+    CALL json%destroy()
+
+    
+  END FUNCTION storage_link_initialize
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_pre_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_pre_transport(this)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+
+    CALL this%internal_bc_link_t%pre_transport()
+    CALL this%bstor%pre_transport()
+
+  END SUBROUTINE storage_pre_transport
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_trans_interp
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_trans_interp(this, tnow, htime0, htime1)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+    DOUBLE PRECISION, INTENT(IN) :: tnow, htime0, htime1
+
+    CALL this%internal_bc_link_t%trans_interp(tnow, htime0, htime1)
+    CALL this%bstor%trans_interp(tnow, htime0, htime1)
+
+  END SUBROUTINE storage_trans_interp
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_transport
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_transport(this, ispec, tstep, tdeltat, hdeltat)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: ispec, tstep
+    DOUBLE PRECISION, INTENT(IN) :: tdeltat, hdeltat
+
+    DOUBLE PRECISION :: qin, cin, cout, qs, cs
+
+    ! Initially assume no outflow from the storage
+    CALL this%internal_bc_link_t%transport(ispec, tstep, tdeltat, hdeltat)
+
+    ! This seems overly complicated, but all flow directions need to
+    ! be considered to figure the storage inflow concentration.
+    
+    qin = 0                     ! "in" to the link
+    cin = 0
+    ASSOCIATE (upt => this%pt(1)%trans, dpt => this%pt(this%npoints)%trans)
+      IF (upt%hnow%q .GT. 0.0) THEN
+         qin = qin + upt%hnow%q
+         cin = cin + upt%cnow(ispec)*upt%hnow%q
+      END IF
+      IF (dpt%hnow%q .LT. 0.0) THEN
+         qin = qin + dpt%hnow%q
+         cin = cin + dpt%cnow(ispec)*dpt%hnow%q
+      END IF
+
+      IF (qin .GT. 0.0) THEN
+         cin = cin/qin
+      ELSE
+         cin = upt%cnow(ispec)
+      END IF
+
+      CALL this%bstor%transport(ispec, tstep, tdeltat, cin, this%species(ispec))
+
+      qs = this%bstor%outflow(.TRUE.)
+      IF (qs .GT. 0.0) THEN
+         cs = this%bstor%outflow_conc(ispec)
+         cin = cin*qin + cs*qs
+         cout = cin/(qin + qs)
+         IF (upt%hnow%q .LT. 0.0) THEN
+            upt%cnow(ispec) = cout
+         END IF
+         IF (dpt%hnow%q .GT. 0.0) THEN
+            dpt%cnow(ispec) = cout
+         END IF
+      END IF
+    END ASSOCIATE
+    
+  END SUBROUTINE storage_transport
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_read_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_read_restart(this, iunit)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: iunit
+
+    CALL this%internal_bc_link_t%read_restart(iunit)
+    CALL this%bstor%read_restart(iunit)
+
+  END SUBROUTINE storage_read_restart
+
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_read_trans_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_read_trans_restart(this, iunit, nspecies)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+    INTEGER, INTENT(IN) :: iunit
+    INTEGER, INTENT(IN) :: nspecies
+
+    CALL this%internal_bc_link_t%read_trans_restart(iunit, nspecies)
+    CALL this%bstor%read_trans_restart(iunit, nspecies)
+
+  END SUBROUTINE storage_read_trans_restart
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_write_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_write_restart(this, iunit)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(IN) :: this
+    INTEGER, INTENT(IN) :: iunit
+
+    CALL this%internal_bc_link_t%write_restart(iunit)
+    CALL this%bstor%write_restart(iunit)
+
+  END SUBROUTINE storage_write_restart
+
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_write_trans_restart
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_write_trans_restart(this, iunit, nspecies)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(IN) :: this
+    INTEGER, INTENT(IN) :: iunit, nspecies
+
+    CALL this%internal_bc_link_t%write_trans_restart(iunit, nspecies)
+    CALL this%bstor%write_trans_restart(iunit, nspecies)
+
+
+  END SUBROUTINE storage_write_trans_restart
+
+
+  ! ----------------------------------------------------------------
+  ! SUBROUTINE storage_link_destroy
+  ! ----------------------------------------------------------------
+  SUBROUTINE storage_link_destroy(this)
+
+    IMPLICIT NONE
+    CLASS (storage_link_t), INTENT(INOUT) :: this
+
+    CALL this%bstor%destroy()
+    CALL this%internal_bc_link_t%destroy()
+
+  END SUBROUTINE storage_link_destroy
+
+
+
+  
 END MODULE nonfluvial_link_module
