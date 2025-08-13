@@ -1,0 +1,8 @@
+LWG 107.5   139.2   9 ts865.out
+LGS  70.1   107.5  11 ts1085.out
+LMN  41.6    59.4  17 ts1637.out
+IHR   9.5    41.6  19 ts1875.out
+MCN 292.5   314.5  24 ts2345.out
+JDA 219.0   289.5  30 ts298.out
+TDA 191.5   205.0  34 ts3328.out
+BON 146.5   154.5  44 ts4317.out

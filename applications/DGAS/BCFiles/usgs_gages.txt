@@ -1,0 +1,17 @@
+ID    13340000  Clearwater  Clearwater River at Orifino, Id
+WA    13334300  Snake       Snake River near Anatone
+WA    13344500  Tucannon    Tucannon River near Starbuck
+WA    13351000  Palouse     Palouse River @ Hooper, Wa
+WA    12510500  Yakima      Yakima River At Kiona
+WA    14018500  WallaWalla  Walla Walla River Near Touchet
+OR    14033500  Umatilla    Umatilla R Nr Umatilla
+OR    14048000  JohnDay     John Day R At Mcdonald Ferry,Oreg
+OR    14103000  Deschutes   Deschutes River At Moody, Near Biggs Oreg
+WA    14113000  Klickitat   Klickitat River Near Pitt, Wash
+OR    14120000  Hood        Hood River At Tucker Bridge,Nr Hood River,Oreg
+WA    14123500  WSalmon     White Salmon R Nr Underwood, Wash
+OR    14211720  Willamette  Willamette River At Portland,Oreg
+WA    14220500  LewisMain   Lewis River At Ariel, Wash
+WA    14222500  EFLewis     East Fork Lewis River Near Heisson, Wash
+WA    14238000  Mayfield    Cowlitz River Below Mayfield Dam, Wash 
+WA    14243000  Cowlitz     Cowlitz River At Castle Rock, Wash
