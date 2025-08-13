@@ -1,0 +1,20 @@
+     1 "../BCFiles/Temperature/PRD-Temp.dat"	/ Columbia River (PRD)
+     2 "../BCFiles/Trib/Yakima-Temperature.dat"	/ Yakima River
+     3 "../BCFiles/Temperature/DWQI-Temp.dat"	/ Dworshak
+     4 "../BCFiles/Temperature/Orofino-Daily-Temperature.dat" / Clearwater (Orofino)
+     5 "../BCFiles/Temperature/ANQW-Temperature.dat"  / Snake River (Anatone)
+     6 "../BCFiles/Trib/Tucannon-Temperature.dat"    / Tucannon River
+     7 "../BCFiles/Trib/Palouse-Temperature.dat"    / Palouse River
+     8 "../BCFiles/Trib/WallaWalla-Temperature.dat"   / Walla Walla River
+     9 "../BCFiles/Trib/Umatilla-Temperature.dat"   / Umatilla River
+    10 "../BCFiles/Trib/JohnDay-Temperature.dat"   / John Day River
+    11 "../BCFiles/Trib/Deschutes-Temperature.dat"   / Deschutes River
+    12 "../BCFiles/Trib/Klickitat-Temperature.dat"   / Klickitat River
+    13 "../BCFiles/Trib/HoodRiver-Temperature.dat"   / Hood River
+    14 "../BCFiles/Trib/WhiteSalmon-Temperature.dat"   / White Salmon River
+    15 "../BCFiles/Trib/Wind-Temperature.dat"   / Wind River
+    16 "../BCFiles/Trib/Sandy-Temperature.dat"   / Washougal/Sandy River
+    17 "../BCFiles/Trib/Willamette-Temperature.dat"   / Willamette River
+    18 "../BCFiles/Trib/Lewis-Temperature.dat"   / Lewis River
+    19 "../BCFiles/Trib/Cowlitz-Temperature.dat"   / Cowlitz River
+    20 "../BCFiles/Trib/Clatskaine-Temperature.dat"   / Clatskaine River

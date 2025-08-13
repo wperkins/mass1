@@ -1,0 +1,4 @@
+LGNW    LGNW Fixed Monitor (SRM 106.5)
+LGSW    LGSW Fixed Monitor (SRM 69.5)
+LMNW    LMNW Fixed Monitor (SRM 40.8)
+IDSW    IDSW Fixed Monitor (SRM 6.0)

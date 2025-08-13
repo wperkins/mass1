@@ -1,0 +1,6 @@
+  1 "../Modern/BCFiles/Anatone-Discharge.dat"	/ 
+  2 "../../LowerSnakeColumbia/BCFiles/Flow/DWR-Qtotal.dat"	/ 
+  3 "../../LowerSnakeColumbia/BCFiles/Trib/Orofino-Flow.dat"	/ 
+  4 "../Modern/BCFiles/Tucannon-Discharge.dat"	/ 
+  5 "../Modern/BCFiles/Palouse-Discharge.dat"	/ 
+  6 "mcn_z.dat"	/ 

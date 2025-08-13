@@ -1,0 +1,10 @@
+convert -density 200x200 Bon-Temperature.eps Bon-Temperature.png
+convert -density 200x200 IHR-Temperature.eps IHR-Temperature.png
+convert -density 200x200 JDA-Temperature.eps JDA-Temperature.png
+convert -density 200x200 LGS-Temperature.eps LGS-Temperature.png
+convert -density 200x200 LMN-Temperature.eps LMN-Temperature.png
+convert -density 200x200 LWG-Temperature.eps LWG-Temperature.png
+#convert -density 200x200 MCN-Temperature.eps MCN-Temperature.png
+convert -density 200x200 TDA-Temperature.eps TDA-Temperature.png
+convert -density 200x200 LEWI-Temperature.eps LEWI-Temperature.png
+convert -density 200x200 SPALDING-Temperature.eps SPALDING-Temperature.png

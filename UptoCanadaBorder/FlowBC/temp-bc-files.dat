@@ -1,0 +1,12 @@
+ 1 "../bc_files/hydro/temperature2/CIBW_temp_all_perk.dat" /
+ 2 "../bc_files/hydro/temperature2/Kettle-Temperature.dat" /
+ 3 "../bc_files/hydro/temperature2/Colville-Temperature.dat" /
+ 4 "../bc_files/hydro/temperature2/Spokane-Temperature.dat" /
+ 5 "../bc_files/hydro/temperature2/Okanagon-Temperature.dat" /
+ 6 "../bc_files/hydro/temperature2/Methow-Temperature.dat" /
+ 7 "../bc_files/hydro/temperature2/Chelan-Temperature.dat" /
+ 8 "../bc_files/hydro/temperature2/Entiat-Temperature.dat" /
+ 9 "../bc_files/hydro/temperature2/Wenatchee-Temperature.dat" /
+10 "../bc_files/hydro/temperature2/Crab-Temperature.dat" /
+11 "../bc_files/hydro/temperature2/Yakima-Temperature.dat" /
+12 "../bc_files/hydro/temperature2/Snake-Temperature.dat" /

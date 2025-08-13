@@ -1,0 +1,5 @@
+Anatone  71     20  Anatone (SRM 168.0)
+LWG     104     20  Lower Granite Dam (SRM 107.5)
+LGS     124     20  Little Goose Dam (SRM 70.0)
+LMN     184     20  Lower Monumental Dam (SRM 41.5)
+IHR     2015    20  Ice Harbor Dam (SRM 9.5)

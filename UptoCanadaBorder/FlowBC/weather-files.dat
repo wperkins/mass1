@@ -1,0 +1,8 @@
+1 "../bc_files/meteorlogical/KFLW-Weather.dat"          0.1  13.9 0.1 0.85 /
+2 "../bc_files/meteorlogical/SBMW-Weather.dat"          0.1  13.9 0.1 0.85 /
+3 "../bc_files/meteorlogical/GCDW-Weather.dat"          0.1  13.9 0.1 0.9 /
+4 "../bc_files/meteorlogical/CJDW-Weather.dat"          0.1  3.0 0.47 0.95 /
+5 "../bc_files/meteorlogical/MASW-Weather.dat"          0.1  3.0 0.47 0.95 /
+6 "../bc_files/meteorlogical/GERW-Weather.dat"          0.1  12.0 0.47 0.85 /
+7 "../bc_files/meteorlogical/LEGW-Weather.dat"      0.1  10.9 0.2 0.85 /
+
